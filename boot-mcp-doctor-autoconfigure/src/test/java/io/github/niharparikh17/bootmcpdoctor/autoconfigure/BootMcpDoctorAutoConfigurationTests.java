@@ -9,6 +9,7 @@ import io.modelcontextprotocol.server.McpStatelessServerFeatures;
 import io.modelcontextprotocol.spec.McpSchema.CallToolRequest;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
 import io.modelcontextprotocol.spec.McpSchema.TextContent;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -26,11 +27,15 @@ import org.springframework.boot.test.context.assertj.AssertableApplicationContex
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(OutputCaptureExtension.class)
 class BootMcpDoctorAutoConfigurationTests {
+
+    private static final String WRITE_AUTHORITY = "boot-mcp-doctor.security.write-authority=ROLE_OPS_ADMIN";
 
     private static final List<String> READ_TOOLS = List.of("get_environment", "get_health", "get_loggers",
             "get_metric", "get_slow_endpoints", "list_metrics");
@@ -40,6 +45,11 @@ class BootMcpDoctorAutoConfigurationTests {
 
     private final ApplicationContextRunner enabled = this.contextRunner
         .withPropertyValues("boot-mcp-doctor.enabled=true");
+
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
 
     @Test
     void registersNothingWhenEnabledIsMissing() {
@@ -61,13 +71,13 @@ class BootMcpDoctorAutoConfigurationTests {
 
     @Test
     void registersSetLogLevelWhenNotReadOnly() {
-        this.enabled.withPropertyValues("boot-mcp-doctor.read-only=false")
+        this.enabled.withPropertyValues("boot-mcp-doctor.read-only=false", WRITE_AUTHORITY)
             .run((context) -> assertThat(toolNames(context)).contains("set_log_level"));
     }
 
     @Test
     void marksOnlySetLogLevelAsChangingState() {
-        this.enabled.withPropertyValues("boot-mcp-doctor.read-only=false").run((context) -> {
+        this.enabled.withPropertyValues("boot-mcp-doctor.read-only=false", WRITE_AUTHORITY).run((context) -> {
             for (SyncToolSpecification spec : specifications(context)) {
                 boolean write = spec.tool().name().equals("set_log_level");
                 assertThat(spec.tool().annotations().readOnlyHint()).as(spec.tool().name()).isEqualTo(!write);
@@ -79,7 +89,8 @@ class BootMcpDoctorAutoConfigurationTests {
     @Test
     void keepsSetLogLevelOutWhenLoggersEndpointIsReadOnly() {
         this.enabled
-            .withPropertyValues("boot-mcp-doctor.read-only=false", "management.endpoint.loggers.access=read-only")
+            .withPropertyValues("boot-mcp-doctor.read-only=false", WRITE_AUTHORITY,
+                    "management.endpoint.loggers.access=read-only")
             .run((context) -> assertThat(toolNames(context)).contains("get_loggers").doesNotContain("set_log_level"));
     }
 
@@ -205,6 +216,8 @@ class BootMcpDoctorAutoConfigurationTests {
                     .filter((spec) -> spec.tool().name().equals("get_health"))
                     .findFirst()
                     .orElseThrow();
+                SecurityContextHolder.getContext()
+                    .setAuthentication(UsernamePasswordAuthenticationToken.authenticated("ops", null, List.of()));
                 CallToolResult result = getHealth.callHandler()
                     .apply(null, CallToolRequest.builder("get_health").arguments(Map.of()).build());
                 assertThat(result.isError()).isNotEqualTo(Boolean.TRUE);

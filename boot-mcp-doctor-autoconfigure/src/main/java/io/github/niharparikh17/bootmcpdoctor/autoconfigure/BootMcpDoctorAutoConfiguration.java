@@ -38,6 +38,10 @@ import org.springframework.core.env.Environment;
  * Tools read the application in-process, so the Actuator endpoints do not need to be exposed over HTTP. Each tool
  * group activates only when its module is on the classpath, and is left out when its Actuator endpoint's access
  * is set to {@code none}.
+ * <p>
+ * With Spring Security on the classpath, every tool call is checked against the authenticated caller and
+ * {@code boot-mcp-doctor.security.*}. Without it, no tools are registered unless
+ * {@code boot-mcp-doctor.security.allow-unauthenticated=true}, and tools that change state never are.
  */
 @AutoConfiguration
 @ConditionalOnClass(value = { Endpoint.class, McpTool.class }, name = "io.modelcontextprotocol.server.McpServer")
@@ -51,21 +55,34 @@ public class BootMcpDoctorAutoConfiguration {
     }
 
     @Bean
-    ToolSelector bootMcpDoctorToolSelector(ObjectProvider<ToolGroup> groups, BootMcpDoctorProperties properties,
-            Environment environment) {
-        return new ToolSelector(groups.orderedStream().toList(), properties, environment);
+    ToolSelector bootMcpDoctorToolSelector(ObjectProvider<ToolGroup> groups, ObjectProvider<ToolAuthorizer> authorizer,
+            BootMcpDoctorProperties properties, Environment environment) {
+        return new ToolSelector(groups.orderedStream().toList(), properties, environment,
+                authorizer.getIfAvailable() != null);
     }
 
     @Bean
-    List<McpServerFeatures.SyncToolSpecification> bootMcpDoctorToolSpecifications(ToolSelector selector) {
-        return selector.specifications(SyncMcpAnnotationProviders::toolSpecifications, (spec) -> spec.tool().name());
+    ToolGuard bootMcpDoctorToolGuard(ObjectProvider<ToolAuthorizer> authorizer) {
+        return new ToolGuard(authorizer.getIfAvailable());
+    }
+
+    @Bean
+    List<McpServerFeatures.SyncToolSpecification> bootMcpDoctorToolSpecifications(ToolSelector selector,
+            ToolGuard guard) {
+        return selector.specifications(SyncMcpAnnotationProviders::toolSpecifications, (spec) -> spec.tool().name())
+            .stream()
+            .map(guard::guard)
+            .toList();
     }
 
     @Bean
     List<McpStatelessServerFeatures.SyncToolSpecification> bootMcpDoctorStatelessToolSpecifications(
-            ToolSelector selector) {
-        return selector.specifications(SyncMcpAnnotationProviders::statelessToolSpecifications,
-                (spec) -> spec.tool().name());
+            ToolSelector selector, ToolGuard guard) {
+        return selector
+            .specifications(SyncMcpAnnotationProviders::statelessToolSpecifications, (spec) -> spec.tool().name())
+            .stream()
+            .map(guard::guard)
+            .toList();
     }
 
     @Bean
@@ -85,6 +102,17 @@ public class BootMcpDoctorAutoConfiguration {
     ToolGroup bootMcpDoctorLogLevelTools(ObjectProvider<LoggingSystem> loggingSystem,
             ObjectProvider<LoggerGroups> loggerGroups) {
         return new ToolGroup("loggers", new LogLevelTools(loggingSystem, loggerGroups), true);
+    }
+
+    // Only Spring Security can tell who is calling. Without it, ToolSelector decides what may be registered at all.
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(name = "org.springframework.security.core.context.SecurityContextHolder")
+    static class SpringSecurityConfiguration {
+
+        @Bean
+        ToolAuthorizer bootMcpDoctorToolAuthorizer(BootMcpDoctorProperties properties) {
+            return new SpringSecurityToolAuthorizer(properties.security());
+        }
     }
 
     @Configuration(proxyBeanMethods = false)

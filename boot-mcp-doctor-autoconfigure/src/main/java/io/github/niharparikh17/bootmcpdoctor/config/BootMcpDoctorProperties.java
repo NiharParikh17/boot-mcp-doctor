@@ -12,12 +12,47 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  * @param readOnly Whether to register only tools that read state. Tools that change state, such as
  * set_log_level, are not registered at all while this is true.
  * @param tools Which tools to register.
+ * @param security Who may call the tools.
  * @param masking Masking applied to every tool response.
  * @param limits Size limits applied to every tool response.
  */
 @ConfigurationProperties(prefix = "boot-mcp-doctor")
 public record BootMcpDoctorProperties(boolean enabled, @DefaultValue("true") boolean readOnly,
-        @DefaultValue Tools tools, @DefaultValue Masking masking, @DefaultValue Limits limits) {
+        @DefaultValue Tools tools, @DefaultValue Security security, @DefaultValue Masking masking,
+        @DefaultValue Limits limits) {
+
+    /**
+     * Access control for tool calls. Spring Security authenticates callers; boot-mcp-doctor checks every tool call
+     * against these settings. Without Spring Security on the classpath, no tools are registered unless
+     * {@code allowUnauthenticated} is true, and tools that change state are never registered.
+     *
+     * @param allowUnauthenticated Whether read tools may be called without authentication, including when Spring
+     * Security is not on the classpath. For local development only.
+     * @param readAuthority Authority a caller needs for tools that only read, such as ROLE_OPS. Empty means any
+     * authenticated caller.
+     * @param writeAuthority Authority a caller needs for tools that change state, such as ROLE_OPS_ADMIN. Those tools
+     * are not registered until this is set.
+     */
+    public record Security(boolean allowUnauthenticated, String readAuthority, String writeAuthority) {
+
+        /**
+         * @return whether a read authority is configured
+         */
+        public boolean requiresReadAuthority() {
+            return hasText(this.readAuthority);
+        }
+
+        /**
+         * @return whether a write authority is configured
+         */
+        public boolean requiresWriteAuthority() {
+            return hasText(this.writeAuthority);
+        }
+
+        private static boolean hasText(String value) {
+            return value != null && !value.isBlank();
+        }
+    }
 
     /**
      * Tool selection. A tool is registered when it is in {@code include} (or {@code include} is empty) and is

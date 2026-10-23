@@ -77,6 +77,17 @@ spring:
         protocol: STREAMABLE
 ```
 
+Then decide who may call the tools:
+
+- **With Spring Security** (any shared or production environment): add Spring Security and protect the MCP endpoint the way you protect the rest of the application. Every tool call must then come from an authenticated caller; see [Security](#security).
+- **Without Spring Security** (only on your own machine): boot-mcp-doctor registers no tools until you opt in:
+
+  ```yaml
+  boot-mcp-doctor:
+    security:
+      allow-unauthenticated: true
+  ```
+
 Then point any MCP client that supports Streamable HTTP at `http://localhost:8080/mcp`.
 
 Without `protocol: STREAMABLE`, Spring AI 2.0 serves the older SSE transport on `/sse` instead. The `STATELESS` protocol is supported too. Only the default `SYNC` server type is supported for now.
@@ -95,7 +106,7 @@ boot-mcp-doctor registers its tools without Spring AI's annotation scanner. If y
 | `get_metric` | `name`, optional `tags` (`KEY:VALUE`) | Current values with units (ms, MB), and the tags that can narrow it. Unknown names return the closest matches. |
 | `get_environment` | optional `prefix` | Effective property values, where each one is set (file and line, environment variable and so on) and the active profiles. Always masked. |
 | `get_loggers` | optional `prefix` | Configured and effective log levels, plus logger groups. |
-| `set_log_level` | `logger`, `level` | Previous and new level. **Write tool:** only registered when `read-only` is `false`. |
+| `set_log_level` | `logger`, `level` | Previous and new level. **Write tool:** only registered when `read-only` is `false`, Spring Security is present and `security.write-authority` is set. |
 
 Without a prefix, `get_environment` returns only properties set in your own config files, and `get_loggers` returns only ROOT and loggers with a configured level.
 
@@ -107,6 +118,9 @@ Without a prefix, `get_environment` returns only properties set in your own conf
 | `boot-mcp-doctor.read-only` | `true` | When `true`, tools that change state (`set_log_level`) are not registered at all. |
 | `boot-mcp-doctor.tools.include` | empty | Names of the tools to register. Empty means all. |
 | `boot-mcp-doctor.tools.exclude` | empty | Names of tools never to register. Wins over `include`. |
+| `boot-mcp-doctor.security.allow-unauthenticated` | `false` | Lets read tools be called without authentication, including without Spring Security. For local development only. |
+| `boot-mcp-doctor.security.read-authority` | empty | Authority a caller needs for read tools, such as `ROLE_OPS`. Empty means any authenticated caller. |
+| `boot-mcp-doctor.security.write-authority` | empty | Authority a caller needs for tools that change state, such as `ROLE_OPS_ADMIN`. Those tools are not registered until this is set. |
 | `boot-mcp-doctor.masking.additional-keys` | empty | Extra key patterns to mask, matched case-insensitively anywhere in the key. |
 | `boot-mcp-doctor.limits.max-items` | `50` | Maximum number of entries in any list or map a tool returns. |
 
@@ -119,10 +133,12 @@ boot-mcp-doctor also follows Actuator's access settings:
 These tools describe the internals of a running application to whoever can reach the MCP endpoint. Treat that endpoint like an Actuator endpoint.
 
 - **Off by default.** Nothing is registered until you set `boot-mcp-doctor.enabled=true`.
-- **Read-only by default.** `set_log_level` is the only tool that changes state. It is not registered unless you set `boot-mcp-doctor.read-only=false`, and even then not if Actuator's `loggers` access is `read-only` or `none`.
+- **Authenticated callers only.** Spring Security decides how callers authenticate, for example with an API key or OAuth2 bearer tokens. boot-mcp-doctor then checks every tool call itself: the caller must be authenticated, even if the MCP endpoint was accidentally left open, and must hold `security.read-authority` or `security.write-authority` when those are set. A refused call returns a "Not authorized" error instead of data. Tool calls run on the request thread, which is where Spring Security keeps the caller.
+- **No tools without authentication.** Without Spring Security on the classpath, boot-mcp-doctor registers no tools unless `security.allow-unauthenticated=true`, and even then only read tools.
+- **Read-only by default.** `set_log_level` is the only tool that changes state. It is only registered when `boot-mcp-doctor.read-only=false`, Spring Security is present, `security.write-authority` is set, and Actuator's `loggers` access is not `read-only` or `none`.
 - **Secrets are always masked.** Keys containing `password`, `secret`, `key`, `token`, `credential` or `auth` are replaced with `******`, as are passwords embedded in URIs such as `jdbc:postgresql://user:pass@host/db`. Any `SanitizingFunction` beans you define for Actuator are applied as well. Masking cannot be turned off; you can only add patterns.
 - **No full dumps.** `get_environment` needs a prefix to look beyond your own config files. Every response is capped at `limits.max-items` entries, and long strings are truncated.
-- **Protect the endpoint.** The MCP endpoint has no authentication of its own. Enable this only in trusted environments, such as local development or behind your existing network and security controls.
+- **Protect the endpoint too.** Configure Spring Security to require authentication for the MCP endpoint (`/mcp`, or `/sse` and `/mcp/message` for SSE), so unauthenticated requests are turned away before they reach the MCP server at all.
 
 ## Building from source
 
