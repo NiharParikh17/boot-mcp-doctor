@@ -8,6 +8,10 @@ A Spring Boot starter that turns your application into an [MCP](https://modelcon
 
 > **Status:** early development. 0.1.0 is the first release, and the tools and settings may still change before 1.0.
 
+**Contents:** [Example](#example) · [How it works](#how-it-works) · [Quick start](#quick-start) · [Tools](#tools) · [Configuration](#configuration) · [Security](#security) · [Building from source](#building-from-source)
+
+Sections marked ▶ expand when you click them.
+
 ## Example
 
 Ask your assistant *"Why is order-service slow?"*. It calls `get_slow_endpoints` and gets a short, structured answer:
@@ -45,7 +49,27 @@ Then it can call `get_health` to see that a downstream dependency is failing:
 }
 ```
 
-Responses are small and summarized: failures first, units included, lists capped, and secrets masked.
+Responses are small and summarized: failures first, units included, lists capped, and secrets masked. Every tool's output is shown under [Tools](#tools).
+
+## How it works
+
+boot-mcp-doctor runs inside your application. Each tool call reads the application's own live state, such as its health checks, Micrometer metrics, `Environment` and logging system, at the moment it is called. Nothing is stored, and nothing is sent anywhere except the response to the caller.
+
+```mermaid
+sequenceDiagram
+    participant Client as MCP client
+    participant Security as Spring Security
+    participant Server as MCP endpoint (/mcp)
+    participant Doctor as boot-mcp-doctor
+    participant App as Your application
+    Client->>Security: tools/call get_health
+    Security->>Server: authenticated request
+    Server->>Doctor: run the tool on the same thread
+    Doctor->>Doctor: check the caller's authority
+    Doctor->>App: read health, metrics, config or loggers
+    App-->>Doctor: live values
+    Doctor-->>Client: masked, capped JSON
+```
 
 ## Requirements
 
@@ -55,7 +79,10 @@ Responses are small and summarized: failures first, units included, lists capped
 
 ## Quick start
 
-Add the starter:
+### 1. Add the starter
+
+<details open>
+<summary><b>Maven</b></summary>
 
 ```xml
 <dependency>
@@ -65,7 +92,33 @@ Add the starter:
 </dependency>
 ```
 
-Turn it on and choose the Streamable HTTP transport:
+</details>
+
+<details>
+<summary><b>Gradle (Kotlin DSL)</b></summary>
+
+```kotlin
+dependencies {
+    implementation("com.nhparikh.repo:boot-mcp-doctor-spring-boot-starter:0.1.0")
+}
+```
+
+</details>
+
+<details>
+<summary><b>Gradle (Groovy DSL)</b></summary>
+
+```groovy
+dependencies {
+    implementation 'com.nhparikh.repo:boot-mcp-doctor-spring-boot-starter:0.1.0'
+}
+```
+
+</details>
+
+### 2. Turn it on
+
+Enable it and choose the Streamable HTTP transport:
 
 ```yaml
 boot-mcp-doctor:
@@ -78,9 +131,11 @@ spring:
         protocol: STREAMABLE
 ```
 
-Then decide who may call the tools:
+Without `protocol: STREAMABLE`, Spring AI 2.0 serves the older SSE transport on `/sse` instead. The `STATELESS` protocol is supported too. Only the default `SYNC` server type is supported for now.
 
-- **With Spring Security** (any shared or production environment): add Spring Security and protect the MCP endpoint the way you protect the rest of the application. Every tool call must then come from an authenticated caller; see [Security](#security).
+### 3. Decide who may call the tools
+
+- **With Spring Security** (any shared or production environment): protect the MCP endpoint the way you protect the rest of the application. Every tool call must then come from an authenticated caller; see [Security](#security).
 - **Without Spring Security** (only on your own machine): boot-mcp-doctor registers no tools until you opt in:
 
   ```yaml
@@ -89,13 +144,35 @@ Then decide who may call the tools:
       allow-unauthenticated: true
   ```
 
-Then point any MCP client that supports Streamable HTTP at `http://localhost:8080/mcp`.
+### 4. Connect a client
 
-Without `protocol: STREAMABLE`, Spring AI 2.0 serves the older SSE transport on `/sse` instead. The `STATELESS` protocol is supported too. Only the default `SYNC` server type is supported for now.
+Point any MCP client that supports Streamable HTTP at `http://localhost:8080/mcp`. If the endpoint requires authentication, configure the client to send the same credentials your application expects, such as an `Authorization` header.
 
-The tools read the application in-process. You do **not** need to expose the Actuator `metrics`, `env` or `loggers` endpoints over HTTP.
+<details>
+<summary><b>Clients that can only start local processes</b></summary>
 
-boot-mcp-doctor registers its tools without Spring AI's annotation scanner. If your application has no `@McpTool` beans of its own, you can set `spring.ai.mcp.server.annotation-scanner.enabled=false` to skip the scanner and the startup warnings it logs when it finds nothing.
+Some desktop clients only launch MCP servers as local commands. The [`mcp-remote`](https://www.npmjs.com/package/mcp-remote) package, which is not part of this project, bridges them to an HTTP endpoint. Add an entry like this to the client's MCP server configuration:
+
+```json
+{
+  "mcpServers": {
+    "order-service": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "http://localhost:8080/mcp"]
+    }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary><b>Notes</b></summary>
+
+- The tools read the application in-process. You do **not** need to expose the Actuator `metrics`, `env` or `loggers` endpoints over HTTP.
+- boot-mcp-doctor registers its tools without Spring AI's annotation scanner. If your application has no `@McpTool` beans of its own, you can set `spring.ai.mcp.server.annotation-scanner.enabled=false` to skip the scanner and the startup warnings it logs when it finds nothing.
+
+</details>
 
 ## Tools
 
@@ -110,6 +187,114 @@ boot-mcp-doctor registers its tools without Spring AI's annotation scanner. If y
 | `set_log_level` | `logger`, `level` | Previous and new level. **Write tool:** only registered when `read-only` is `false`, Spring Security is present and `security.write-authority` is set. |
 
 Without a prefix, `get_environment` returns only properties set in your own config files, and `get_loggers` returns only ROOT and loggers with a configured level.
+
+The outputs below are real responses from the [sample app](#building-from-source), run with Spring Security, an `ops` user and `write-authority` set. `get_health` and `get_slow_endpoints` are shown in the [Example](#example).
+
+<details>
+<summary><b>list_metrics</b> with <code>prefix: "jvm.memory"</code></summary>
+
+```json
+{
+  "summary": "4 metrics starting with 'jvm.memory'.",
+  "names": ["jvm.memory.committed", "jvm.memory.max", "jvm.memory.usage.after.gc", "jvm.memory.used"],
+  "omittedNames": 0
+}
+```
+
+</details>
+
+<details>
+<summary><b>get_metric</b> with <code>name: "jvm.memory.used"</code>, <code>tags: ["area:heap"]</code></summary>
+
+```json
+{
+  "name": "jvm.memory.used",
+  "found": true,
+  "summary": "jvm.memory.used: VALUE 44.3 MB.",
+  "description": "The amount of used memory",
+  "measurements": [
+    { "statistic": "VALUE", "value": 44.3, "unit": "MB" }
+  ],
+  "availableTags": { "id": ["G1 Eden Space", "G1 Old Gen", "G1 Survivor Space"] },
+  "suggestions": []
+}
+```
+
+</details>
+
+<details>
+<summary><b>get_metric</b> with a misspelled name, <code>"jvm.memory.usd"</code></summary>
+
+```json
+{
+  "name": "jvm.memory.usd",
+  "found": false,
+  "summary": "No metric named 'jvm.memory.usd'.",
+  "description": null,
+  "measurements": [],
+  "availableTags": {},
+  "suggestions": ["jvm.memory.used", "jvm.memory.max", "jvm.buffer.memory.used", "jvm.gc.pause", "jvm.memory.committed"]
+}
+```
+
+</details>
+
+<details>
+<summary><b>get_environment</b> with <code>prefix: "spring.security"</code> (note the masked password)</summary>
+
+```json
+{
+  "summary": "3 properties match prefix 'spring.security'.",
+  "activeProfiles": [],
+  "properties": [
+    { "name": "spring.security.user.name", "value": "ops", "origin": "class path resource [application.yml] - 6:13" },
+    { "name": "spring.security.user.password", "value": "******", "origin": "class path resource [application.yml] - 7:17" },
+    { "name": "spring.security.user.roles", "value": "OPS_ADMIN", "origin": "class path resource [application.yml] - 8:14" }
+  ],
+  "omittedProperties": 0
+}
+```
+
+</details>
+
+<details>
+<summary><b>get_loggers</b> with <code>prefix: "com.nhparikh"</code></summary>
+
+```json
+{
+  "summary": "7 loggers start with 'com.nhparikh'.",
+  "levels": ["OFF", "ERROR", "WARN", "INFO", "DEBUG", "TRACE"],
+  "loggers": [
+    { "name": "com.nhparikh", "configuredLevel": null, "effectiveLevel": "INFO" },
+    { "name": "com.nhparikh.repo", "configuredLevel": null, "effectiveLevel": "INFO" },
+    { "name": "com.nhparikh.repo.bootmcpdoctor", "configuredLevel": null, "effectiveLevel": "INFO" },
+    { "name": "com.nhparikh.repo.bootmcpdoctor.autoconfigure", "configuredLevel": null, "effectiveLevel": "INFO" },
+    { "name": "com.nhparikh.repo.bootmcpdoctor.autoconfigure.ToolSelector", "configuredLevel": null, "effectiveLevel": "INFO" },
+    { "name": "com.nhparikh.repo.bootmcpdoctor.demo", "configuredLevel": null, "effectiveLevel": "INFO" },
+    { "name": "com.nhparikh.repo.bootmcpdoctor.demo.DemoApplication", "configuredLevel": null, "effectiveLevel": "INFO" }
+  ],
+  "groups": [],
+  "omittedLoggers": 0
+}
+```
+
+</details>
+
+<details>
+<summary><b>set_log_level</b> with <code>logger: "com.nhparikh.repo.bootmcpdoctor.demo"</code>, <code>level: "DEBUG"</code></summary>
+
+```json
+{
+  "summary": "Set com.nhparikh.repo.bootmcpdoctor.demo from inherited to DEBUG (effective DEBUG).",
+  "logger": "com.nhparikh.repo.bootmcpdoctor.demo",
+  "changed": true,
+  "previousLevel": null,
+  "newLevel": "DEBUG",
+  "effectiveLevel": "DEBUG"
+}
+```
+
+</details>
 
 ## Configuration
 
@@ -129,6 +314,28 @@ boot-mcp-doctor also follows Actuator's access settings:
 - `management.endpoint.<id>.access=none` (or `management.endpoints.access.default` / `max-permitted`) removes that endpoint's tools. The IDs are `health`, `metrics`, `env` and `loggers`.
 - `read-only` access removes the write tools.
 
+<details>
+<summary><b>Every setting in one <code>application.yml</code></b></summary>
+
+```yaml
+boot-mcp-doctor:
+  enabled: true
+  read-only: true                 # false also registers set_log_level, given the security settings below
+  tools:
+    include: []                   # for example [get_health, get_slow_endpoints]; empty means all
+    exclude: []                   # for example [get_environment]
+  security:
+    allow-unauthenticated: false  # true only for local development
+    read-authority: ROLE_OPS      # leave unset to allow any authenticated caller
+    write-authority: ROLE_OPS_ADMIN
+  masking:
+    additional-keys: [iban, ssn]  # masked on top of password, secret, key, token, credential and auth
+  limits:
+    max-items: 50
+```
+
+</details>
+
 ## Security
 
 These tools describe the internals of a running application to whoever can reach the MCP endpoint. Treat that endpoint like an Actuator endpoint.
@@ -140,6 +347,29 @@ These tools describe the internals of a running application to whoever can reach
 - **Secrets are always masked.** Keys containing `password`, `secret`, `key`, `token`, `credential` or `auth` are replaced with `******`, as are passwords embedded in URIs such as `jdbc:postgresql://user:pass@host/db`. Any `SanitizingFunction` beans you define for Actuator are applied as well. Masking cannot be turned off; you can only add patterns.
 - **No full dumps.** `get_environment` needs a prefix to look beyond your own config files. Every response is capped at `limits.max-items` entries, and long strings are truncated.
 - **Protect the endpoint too.** Configure Spring Security to require authentication for the MCP endpoint (`/mcp`, or `/sse` and `/mcp/message` for SSE), so unauthenticated requests are turned away before they reach the MCP server at all.
+
+<details>
+<summary><b>Example: protect the endpoint with Spring Security</b></summary>
+
+A minimal setup with HTTP Basic. For production, prefer OAuth2 bearer tokens or API keys in the same filter chain. MCP clients don't send CSRF tokens, so CSRF protection is turned off for `/mcp` only.
+
+```java
+@Configuration
+class SecurityConfig {
+
+    @Bean
+    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        return http.csrf((csrf) -> csrf.ignoringRequestMatchers("/mcp"))
+            .authorizeHttpRequests((requests) -> requests.anyRequest().authenticated())
+            .httpBasic(Customizer.withDefaults())
+            .build();
+    }
+}
+```
+
+With this in place, a request to `/mcp` without credentials gets HTTP 401, and an authenticated caller can use the read tools. Add `boot-mcp-doctor.security.write-authority` (and a user holding that authority) to allow `set_log_level`.
+
+</details>
 
 ## Building from source
 
