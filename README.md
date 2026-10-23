@@ -403,7 +403,9 @@ Run the sample app, which has a deliberately slow `/checkout` endpoint and a fai
 ./mvnw -pl samples/demo-app spring-boot:run
 ```
 
-`./mvnw verify` also checks that line coverage of the auto-configuration module stays at 85% or more; the HTML report is written to `boot-mcp-doctor-autoconfigure/target/site/jacoco/`. Releases are covered in [RELEASING.md](RELEASING.md).
+To see the tools behind Spring Security, run `samples/secured-demo-app` the same way. Its users are `ops`, `admin` and `viewer`, with the password from its `application.yml`.
+
+`./mvnw verify` boots both samples in 34 configurations and checks each one through a real MCP client; the guide lists them under [Scenarios covered by tests](docs/guide.md#scenarios-covered-by-tests). It also checks that line coverage of the auto-configuration module stays at 85% or more; the HTML report is written to `boot-mcp-doctor-autoconfigure/target/site/jacoco/`. Releases are covered in [RELEASING.md](RELEASING.md).
 
 ## Feedback
 

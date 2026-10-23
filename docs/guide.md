@@ -13,7 +13,8 @@ This guide explains what boot-mcp-doctor does, when to use it, how to set it up 
 7. [Logs](#logs)
 8. [What each tool needs](#what-each-tool-needs)
 9. [Troubleshooting](#troubleshooting)
-10. [FAQ](#faq)
+10. [Scenarios covered by tests](#scenarios-covered-by-tests)
+11. [FAQ](#faq)
 
 ## What it is
 
@@ -42,7 +43,7 @@ What it does **not** do:
 - It is not a separate process or server. It only exists inside the application you add it to.
 - It never describes other services, only the application it runs in.
 - It stores nothing and sends nothing anywhere except the response to the caller.
-- It does not need Actuator's `metrics`, `env` or `loggers` endpoints to be exposed over HTTP.
+- It does not need any Actuator endpoint to be exposed over HTTP.
 - It does not change the application, unless you turn on `set_log_level`.
 
 ## When to use it
@@ -64,7 +65,7 @@ The tools describe whatever is in the application, including configuration value
 | A WebFlux application | The starter brings Spring MVC and Tomcat. When both are present, Spring Boot runs Spring MVC, so your WebFlux application would change underneath you. | Only add it to Spring MVC (servlet) applications. |
 | An application without a web server, such as a batch job | The starter starts Tomcat so that the MCP endpoint can be reached over HTTP. | Use it in web applications only. |
 | `spring.ai.mcp.server.type=ASYNC` | boot-mcp-doctor only provides synchronous tools, so nothing is served. The startup log warns: `no synchronous MCP server is running`. | Leave `type` at its default, `SYNC`. |
-| `spring.ai.mcp.server.protocol` not set | Spring AI 2.0 falls back to the older SSE transport, so `/mcp` does not exist and clients get HTTP 404 (`No static resource mcp`). | Set `protocol: STREAMABLE`. |
+| `spring.ai.mcp.server.protocol` not set | Spring AI 2.0 falls back to the older SSE transport, so `/mcp` does not exist and clients get HTTP 404 from it. The startup line says `(SSE)`. | Set `protocol: STREAMABLE`. |
 | No Spring Security and `allow-unauthenticated` not set | No tools are registered, by design. The log says `registered no tools because nothing authenticates callers`. | Add Spring Security, or opt in for local development. |
 | Several instances behind a load balancer | With `STREAMABLE` or `SSE`, each session lives in the memory of one instance. If the next request lands on another instance, it fails with HTTP 404 `Session not found`. | Use sticky sessions, or `protocol: STATELESS`. Either way, each answer describes only the instance that served it. |
 | A client that can only sign in through its own OAuth flow | Your application does not publish OAuth discovery metadata, so the client falls back to `/authorize` on your application and the sign-in fails. | Send the token in a header instead; see [Connecting clients](#connecting-clients). |
@@ -227,7 +228,7 @@ Tool names: `get_health`, `get_slow_endpoints`, `get_metric`, `list_metrics`, `g
 | `management.endpoints.access.default`, `max-permitted` | `unrestricted` | Apply the same to every endpoint, as in Actuator. |
 | `logging.level.com.nhparikh.repo.bootmcpdoctor` | `INFO` | `WARN` keeps only warnings. See [Logs](#logs). |
 
-Exposing Actuator endpoints over HTTP (`management.endpoints.web.exposure.include`) has no effect on boot-mcp-doctor. The tools read the application in-process, whether or not the endpoints are exposed.
+Actuator's exposure settings (`management.endpoints.web.exposure.*`) don't matter: the tools read the application in-process, whether or not the endpoints are exposed. `get_health` uses Actuator's health endpoint when Spring Boot has created it, which it only does while health is exposed, and otherwise reads the health contributors directly, so hiding health from HTTP callers doesn't affect it. A separate `management.server.port` and `management.endpoint.health.show-details` make no difference either.
 
 ## Recipes
 
@@ -276,7 +277,7 @@ boot-mcp-doctor:
     read-authority: ROLE_OPS
 ```
 
-Clients send `Authorization: Basic <base64 of user:password>`.
+Clients send `Authorization: Basic <base64 of user:password>`. The [secured sample](../samples/secured-demo-app) uses this setup, with an `ops` user for the read tools and an `admin` user who may also change log levels.
 
 ### OAuth2 bearer tokens
 
@@ -315,6 +316,7 @@ boot-mcp-doctor:
 - By default the token's scopes become `SCOPE_<scope>` authorities. If you map roles with your own converter, use those names.
 - The connection log shows the token's subject (`sub` claim) as the user; for client-credentials tokens that is usually the client ID.
 - Access tokens expire, often within an hour. Clients that take a fixed header need a new token when it does.
+- The [secured sample](../samples/secured-demo-app) accepts bearer tokens next to HTTP Basic once a JWT decoder is configured. `JwtBearerTokenTests` shows tokens with and without the right scope, an expired token and a token from another issuer.
 
 ### Let admins change log levels
 
@@ -406,7 +408,7 @@ curl -si -X POST http://localhost:8080/mcp -H "Authorization: Bearer $TOKEN" -H 
 | HTTP 200 with an `Mcp-Session-Id` header | Everything works. Clients will connect. |
 | HTTP 401 | The credentials were missing or rejected. For bearer tokens, the `WWW-Authenticate` header's `error_description` says why, for example an expired token or the wrong issuer. With HTTP Basic or API keys, a CSRF rejection also comes back as 401 and looks exactly like a wrong password: if the same credentials work for a GET elsewhere in the application, exempt `/mcp` from CSRF. |
 | HTTP 403 | Authenticated, but an authorization rule in your filter chain refused the request, for example `hasRole` on `/mcp`. |
-| HTTP 404, with `No static resource mcp` in the response or the application log | Credentials accepted, but there is no Streamable HTTP endpoint. Set `spring.ai.mcp.server.protocol: STREAMABLE`. |
+| HTTP 404 from `/mcp` | Credentials accepted, but there is no Streamable HTTP endpoint at that path. Usually `spring.ai.mcp.server.protocol` is not set; check the startup line. Applications that include error messages in responses show `No static resource mcp`. |
 | HTTP 404 on a later request, `Session not found` | The session is unknown to the instance that answered: the application restarted, or another instance answered. See [Several instances](#several-instances). |
 | HTTP 400, `Invalid Accept headers` | The request did not accept both `application/json` and `text/event-stream`. |
 
@@ -528,7 +530,7 @@ MCP client connected: Visual Studio Code 1.105.1 (protocol 2025-06-18, session b
 
 | Tool | Reads | Needs | When the source is missing |
 |---|---|---|---|
-| `get_health` | Actuator's health endpoint | Actuator's health module, which the starter brings | `Health endpoint not available...` |
+| `get_health` | Actuator's health endpoint, or the health contributors directly when health is not exposed | Actuator's health module, which the starter brings | `Health not available...` |
 | `list_metrics`, `get_metric` | Micrometer's `MeterRegistry` | A `MeterRegistry` bean, which Actuator creates | `Metrics not available...` |
 | `get_slow_endpoints` | The `http.server.requests` metric | A `MeterRegistry` and at least one handled request | `No HTTP requests recorded yet...` |
 | `get_environment` | The Spring `Environment` | Nothing extra | Always available |
@@ -536,7 +538,7 @@ MCP client connected: Visual Studio Code 1.105.1 (protocol 2025-06-18, session b
 
 Things worth knowing about individual tools:
 
-- **`get_health`** includes the details of components that are not UP, masked, even when `management.endpoint.health.show-details` is `never`. Healthy components are listed by name and status only.
+- **`get_health`** includes the details of components that are not UP, masked, even when `management.endpoint.health.show-details` is `never` or health is not exposed. Healthy components are listed by name and status only.
 - **`get_slow_endpoints`** ranks by mean latency since startup and leaves out the MCP and Actuator endpoints. Its `max` only covers roughly the last two minutes, so it can be 0 for endpoints that were not called recently. `limit` defaults to 5.
 - **`get_metric`** reports times in ms and sizes in MB. An unknown name returns the closest matching names instead.
 - **`get_environment`** without a prefix only returns properties from the application's own config files. With a prefix, such as `spring.datasource`, it returns any property, including environment variables, with where each value comes from.
@@ -548,7 +550,7 @@ Things worth knowing about individual tools:
 |---|---|---|
 | No startup line at all | `boot-mcp-doctor.enabled` is not `true`, the version is older than 0.1.1, or boot-mcp-doctor's logging is set above `INFO`. | Set it in the active profile; check the version and logging levels. |
 | Startup warns `registered no tools because nothing authenticates callers` | No Spring Security. | Add Spring Security, or set `security.allow-unauthenticated: true` for local development. |
-| HTTP 404 `No static resource mcp` | The transport is SSE because `protocol` is not set. | `spring.ai.mcp.server.protocol: STREAMABLE`. |
+| HTTP 404 from `/mcp`, sometimes with `No static resource mcp` | The transport is SSE because `protocol` is not set; the startup line says `(SSE)`. | `spring.ai.mcp.server.protocol: STREAMABLE`. |
 | Client asks to sign in, or opens `/authorize` on the application | The client got HTTP 401. | Send the token in a header; run the curl check. |
 | HTTP 401 with `error_description="Jwt expired..."` or a wrong issuer | The token is rejected. | Get a fresh access token from the issuer in `issuer-uri`. |
 | HTTP 401 with HTTP Basic or an API key, although the credentials work for GET requests | CSRF protection rejected the POST. | Exempt `/mcp` from CSRF, as in the [HTTP Basic recipe](#http-basic-for-a-shared-environment). |
@@ -560,11 +562,68 @@ Things worth knowing about individual tools:
 | `get_slow_endpoints` says no requests were recorded | The application has not served any HTTP request since it started. | Call an endpoint and ask again. |
 | HTTP 404 `Session not found` | The application restarted, or another instance answered. | Reconnect; for several instances, see [Several instances](#several-instances). |
 
+## Scenarios covered by tests
+
+Every behavior in this guide is checked by a test. Each test boots one of the two sample applications with one configuration, connects a real MCP client, and checks the startup line, the tool results, the HTTP responses and the logs. They run with `./mvnw verify`, so on every pull request. Each test class doubles as an example: its `@SpringBootTest(properties = ...)` is the configuration, and its assertions are what you will see.
+
+Without Spring Security, in [`samples/demo-app`](../samples/demo-app):
+
+| Scenario | Test |
+|---|---|
+| The demo as it ships: every read tool, the logs, `allow-unauthenticated` | [`DemoApplicationTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/DemoApplicationTests.java) |
+| No `allow-unauthenticated`, so no tools | [`NoAuthenticationOptInTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/NoAuthenticationOptInTests.java) |
+| `read-only: false` without Spring Security, so no `set_log_level` | [`WriteToolsWithoutSpringSecurityTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/WriteToolsWithoutSpringSecurityTests.java) |
+| `tools.include`, `tools.exclude` and a misspelled name | [`ToolSelectionTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/ToolSelectionTests.java) |
+| `management.endpoint.<id>.access=none` | [`ActuatorAccessTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/ActuatorAccessTests.java) |
+| `management.endpoints.access.max-permitted=none` | [`MaxPermittedAccessTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/MaxPermittedAccessTests.java) |
+| `show-details=never` and a separate management port | [`ActuatorExposureTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/ActuatorExposureTests.java) |
+| Health not exposed, and `get_health` still works | [`HealthNotExposedTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/HealthNotExposedTests.java) |
+| Masking: built-in keys, `additional-keys`, URI passwords and health details | [`MaskingTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/MaskingTests.java) |
+| `limits.max-items` | [`ResponseLimitTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/ResponseLimitTests.java) |
+| `limits.max-items=0` stops the application from starting | [`InvalidMaxItemsTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/InvalidMaxItemsTests.java) |
+| `protocol: SSE` | [`SseProtocolTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/SseProtocolTests.java) |
+| `protocol` not set | [`ProtocolNotSetTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/ProtocolNotSetTests.java) |
+| `protocol: STATELESS` | [`StatelessProtocolTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/StatelessProtocolTests.java) |
+| A context path | [`ContextPathTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/ContextPathTests.java) |
+| A DispatcherServlet path | [`ServletPathTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/ServletPathTests.java) |
+| A custom MCP endpoint | [`CustomEndpointTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/CustomEndpointTests.java) |
+| `boot-mcp-doctor.enabled=false` | [`DisabledTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/DisabledTests.java) |
+| `spring.ai.mcp.server.type=ASYNC` | [`AsyncServerTypeTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/AsyncServerTypeTests.java) |
+| `spring.ai.mcp.server.enabled=false` | [`McpServerDisabledTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/McpServerDisabledTests.java) |
+| The connection log turned off | [`ConnectionLogOffTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/ConnectionLogOffTests.java) |
+| The HTTP responses from the curl check | [`HttpResponsesTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/HttpResponsesTests.java) |
+
+With Spring Security, in [`samples/secured-demo-app`](../samples/secured-demo-app):
+
+| Scenario | Test |
+|---|---|
+| The secured demo as it ships: HTTP Basic, `read-authority` and `write-authority`, HTTP 401 for missing or wrong credentials, refused calls, `set_log_level` and `RESET` | [`SecuredDemoApplicationTests`](../samples/secured-demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/secured/SecuredDemoApplicationTests.java) |
+| boot-mcp-doctor's defaults: any authenticated caller | [`AnyAuthenticatedCallerTests`](../samples/secured-demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/secured/AnyAuthenticatedCallerTests.java) |
+| `read-only: false` without `write-authority` | [`WriteWithoutAuthorityTests`](../samples/secured-demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/secured/WriteWithoutAuthorityTests.java) |
+| The MCP endpoint accidentally left open in Spring Security | [`OpenEndpointTests`](../samples/secured-demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/secured/OpenEndpointTests.java) |
+| `allow-unauthenticated` with Spring Security | [`AllowUnauthenticatedTests`](../samples/secured-demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/secured/AllowUnauthenticatedTests.java) |
+| `read-authority` wins over `allow-unauthenticated` | [`ReadAuthorityWinsTests`](../samples/secured-demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/secured/ReadAuthorityWinsTests.java) |
+| OAuth2 JWT bearer tokens: scopes, a write scope only, an expired token, another issuer | [`JwtBearerTokenTests`](../samples/secured-demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/secured/JwtBearerTokenTests.java) |
+| No CSRF exemption: HTTP Basic gets 401, bearer tokens still work | [`CsrfTests`](../samples/secured-demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/secured/CsrfTests.java) |
+| A role required by the filter chain: HTTP 403 | [`AuthorizationRuleTests`](../samples/secured-demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/secured/AuthorizationRuleTests.java) |
+| A context path | [`SecuredContextPathTests`](../samples/secured-demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/secured/SecuredContextPathTests.java) |
+| `protocol: SSE` | [`SecuredSseTests`](../samples/secured-demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/secured/SecuredSseTests.java) |
+| `protocol: STATELESS` | [`SecuredStatelessTests`](../samples/secured-demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/secured/SecuredStatelessTests.java) |
+
+To run a sample yourself:
+
+```bash
+./mvnw install -DskipTests
+./mvnw -pl samples/secured-demo-app spring-boot:run
+```
+
+The secured sample's users are `ops`, `admin` and `viewer`, with the password set in `demo.password` in its `application.yml`. Swap in `samples/demo-app` for the sample without Spring Security.
+
 ## FAQ
 
 **Do I need to expose Actuator endpoints over HTTP?**
 
-No. The tools read the application in-process. Exposure settings make no difference; access settings do.
+No. The tools read the application in-process. `get_health` uses Actuator's health endpoint when Spring Boot has created it and otherwise reads the health contributors directly, so exposure settings make no difference. Access settings (`management.endpoint.<id>.access`) do apply to every tool.
 
 **Does the management port matter?**
 

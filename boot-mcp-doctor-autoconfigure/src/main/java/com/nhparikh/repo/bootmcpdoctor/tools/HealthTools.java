@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.nhparikh.repo.bootmcpdoctor.model.ComponentHealth;
@@ -20,12 +21,11 @@ import org.springframework.boot.health.actuate.endpoint.IndicatedHealthDescripto
 import org.springframework.boot.health.contributor.Status;
 
 /**
- * MCP tools that report the application's health from the Actuator {@link HealthEndpoint}.
+ * MCP tools that report the application's health through an Actuator {@link HealthEndpoint}.
  */
 public class HealthTools {
 
-    static final String UNAVAILABLE = "Health endpoint not available. Is spring-boot-starter-actuator on the "
-            + "classpath and is the health endpoint enabled and exposed?";
+    static final String UNAVAILABLE = "Health not available. Is spring-boot-starter-actuator on the classpath?";
 
     private static final int SUMMARY_NAMES = 5;
 
@@ -33,7 +33,7 @@ public class HealthTools {
         .comparingInt((ComponentHealth component) -> severity(component.status()))
         .thenComparing(ComponentHealth::name);
 
-    private final ObjectProvider<HealthEndpoint> healthEndpoint;
+    private final Supplier<HealthEndpoint> healthEndpoint;
 
     private final ResponseSanitizer sanitizer;
 
@@ -42,6 +42,14 @@ public class HealthTools {
      * @param sanitizer masks and limits the response
      */
     public HealthTools(ObjectProvider<HealthEndpoint> healthEndpoint, ResponseSanitizer sanitizer) {
+        this((Supplier<HealthEndpoint>) healthEndpoint::getIfAvailable, sanitizer);
+    }
+
+    /**
+     * @param healthEndpoint supplies the health endpoint to read, or {@code null} when there is none
+     * @param sanitizer masks and limits the response
+     */
+    public HealthTools(Supplier<HealthEndpoint> healthEndpoint, ResponseSanitizer sanitizer) {
         this.healthEndpoint = healthEndpoint;
         this.sanitizer = sanitizer;
     }
@@ -61,7 +69,7 @@ public class HealthTools {
             annotations = @McpAnnotations(title = "Get health", readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public HealthReport getHealth() {
-        HealthEndpoint endpoint = this.healthEndpoint.getIfAvailable();
+        HealthEndpoint endpoint = this.healthEndpoint.get();
         if (endpoint == null) {
             return HealthReport.unavailable(UNAVAILABLE);
         }

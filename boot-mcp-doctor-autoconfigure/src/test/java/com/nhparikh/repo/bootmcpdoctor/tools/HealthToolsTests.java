@@ -116,6 +116,13 @@ class HealthToolsTests {
     }
 
     @Test
+    void reportsUnavailableWhenNothingSuppliesAnEndpoint() {
+        HealthReport report = new HealthTools(() -> null, sanitizer()).getHealth();
+        assertThat(report.status()).isNull();
+        assertThat(report.summary()).isEqualTo(HealthTools.UNAVAILABLE);
+    }
+
+    @Test
     void reportsFailureWhenHealthEndpointThrows() {
         HealthEndpoint endpoint = mock(HealthEndpoint.class);
         given(endpoint.health()).willThrow(new IllegalStateException("registry closed"));

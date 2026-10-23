@@ -19,7 +19,7 @@ You need Java 17 or later. CI builds on JDK 17, 21 and 25. Maven comes with the 
 ./mvnw verify
 ```
 
-`verify` compiles everything, runs the tests (including an end-to-end test that calls the tools through a real MCP client), and fails if line coverage of `boot-mcp-doctor-autoconfigure` drops below 85%. The coverage report is written to `boot-mcp-doctor-autoconfigure/target/site/jacoco/index.html`.
+`verify` compiles everything, runs the tests (including end-to-end tests that boot both sample applications in many configurations and call the tools through a real MCP client), and fails if line coverage of `boot-mcp-doctor-autoconfigure` drops below 85%. The coverage report is written to `boot-mcp-doctor-autoconfigure/target/site/jacoco/index.html`.
 
 To try your change against the sample application:
 
@@ -28,7 +28,7 @@ To try your change against the sample application:
 ./mvnw -pl samples/demo-app spring-boot:run
 ```
 
-Then point an MCP client at `http://localhost:8080/mcp`.
+Then point an MCP client at `http://localhost:8080/mcp`. To try it behind Spring Security, run `samples/secured-demo-app` instead, and authenticate as `ops`, `admin` or `viewer` with the password from its `application.yml`.
 
 ## Project layout
 
@@ -36,7 +36,8 @@ Then point an MCP client at `http://localhost:8080/mcp`.
 |---|---|
 | `boot-mcp-doctor-autoconfigure` | All of the code: auto-configuration, properties, tools, response records and the safety layer |
 | `boot-mcp-doctor-spring-boot-starter` | No code; pulls in the auto-configuration, Actuator and the Spring MVC MCP server |
-| `samples/demo-app` | A sample order service with a slow endpoint and a failing health check; never published |
+| `samples/demo-app` | A sample order service with a slow endpoint and a failing health check, without Spring Security; never published |
+| `samples/secured-demo-app` | A sample service that protects the MCP endpoint with Spring Security, using HTTP Basic users and JWT bearer tokens; never published |
 
 Inside the auto-configuration module, under `com.nhparikh.repo.bootmcpdoctor`:
 
@@ -57,7 +58,7 @@ boot-mcp-doctor is read-only and safe by default. Every tool needs to keep it th
 - **Write the description for whoever calls the tool.** Say what the tool does, when to use it and how to read its output. Set the `@McpTool` annotations: `readOnlyHint = true` for read tools.
 - **Register it through a `ToolGroup`.** Add a `ToolGroup` bean in `BootMcpDoctorAutoConfiguration` with the matching Actuator endpoint ID, so Actuator access settings apply. Guard it with `@ConditionalOnClass` if it needs an optional module. Tool classes are not beans themselves.
 - **Treat anything that changes state as a write tool.** Mark the group with `write = true` and set `readOnlyHint = false`. Write tools are only registered when `boot-mcp-doctor.read-only=false`, Spring Security is present, `boot-mcp-doctor.security.write-authority` is set and the endpoint's Actuator access allows it, and every call needs that authority. `ToolGuard` checks each call, so a new tool needs no security code of its own.
-- **Document it.** Add the tool to the Tools table in the README, and any new property to the Configuration table.
+- **Document it.** Add the tool to the Tools table in the README, and any new property to the Configuration table and to the [guide](docs/guide.md#settings-reference).
 
 ## Tests
 
@@ -66,7 +67,8 @@ Every change needs tests. For a tool, that usually means:
 - unit tests for the normal case, an empty result, a missing data source and output larger than `max-items`;
 - a masking test whenever the output can contain configuration values or other secrets, asserting that the secret never appears;
 - an auto-configuration test showing when the tool is and isn't registered;
-- a call from `DemoApplicationTests` if the tool works against the sample application.
+- a call from `DemoApplicationTests` if the tool works against the sample application;
+- a scenario test for anything users can see, such as a new setting, log line or error. Add a test class to `samples/demo-app` (without Spring Security) or `samples/secured-demo-app` (with Spring Security) that extends `McpAppTest`, sets the configuration in `@SpringBootTest(properties = ...)`, and checks the startup line, what a client sees and the logs. List it under [Scenarios covered by tests](docs/guide.md#scenarios-covered-by-tests) in the guide.
 
 ## Code style
 

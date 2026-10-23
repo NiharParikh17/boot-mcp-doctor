@@ -2,6 +2,7 @@ package com.nhparikh.repo.bootmcpdoctor.autoconfigure;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 import com.nhparikh.repo.bootmcpdoctor.config.BootMcpDoctorProperties;
 import com.nhparikh.repo.bootmcpdoctor.safety.ResponseSanitizer;
@@ -27,6 +28,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.health.actuate.endpoint.HealthEndpoint;
+import org.springframework.boot.health.registry.HealthContributorRegistry;
+import org.springframework.boot.health.registry.ReactiveHealthContributorRegistry;
 import org.springframework.boot.logging.LoggerGroups;
 import org.springframework.boot.logging.LoggingSystem;
 import org.springframework.boot.micrometer.metrics.actuate.endpoint.MetricsEndpoint;
@@ -34,6 +37,7 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+import org.springframework.util.function.SingletonSupplier;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
@@ -155,8 +159,22 @@ public class BootMcpDoctorAutoConfiguration {
 
         @Bean
         ToolGroup bootMcpDoctorHealthTools(ObjectProvider<HealthEndpoint> healthEndpoint,
+                ObjectProvider<HealthContributorRegistry> registry,
+                ObjectProvider<ReactiveHealthContributorRegistry> reactiveRegistry, Environment environment,
                 ResponseSanitizer sanitizer) {
-            return new ToolGroup("health", new HealthTools(healthEndpoint, sanitizer), false);
+            // Spring Boot only creates the health endpoint while health is exposed; otherwise, build one over the
+            // contributors, so that get_health doesn't depend on exposure.
+            Supplier<HealthEndpoint> endpoint = SingletonSupplier.of(() -> {
+                HealthEndpoint bean = healthEndpoint.getIfAvailable();
+                if (bean != null) {
+                    return bean;
+                }
+                HealthContributorRegistry contributors = registry.getIfAvailable();
+                return (contributors != null)
+                        ? InProcessHealthEndpoint.create(contributors, reactiveRegistry.getIfAvailable(), environment)
+                        : null;
+            });
+            return new ToolGroup("health", new HealthTools(endpoint, sanitizer), false);
         }
     }
 
