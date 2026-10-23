@@ -38,7 +38,7 @@ Then point an MCP client at `http://localhost:8080/mcp`.
 | `boot-mcp-doctor-spring-boot-starter` | No code; pulls in the auto-configuration, Actuator and the Spring MVC MCP server |
 | `samples/demo-app` | A sample order service with a slow endpoint and a failing health check; never published |
 
-Inside the auto-configuration module, under `io.github.niharparikh17.bootmcpdoctor`:
+Inside the auto-configuration module, under `com.nhparikh.repo.bootmcpdoctor`:
 
 - `autoconfigure`: `BootMcpDoctorAutoConfiguration` and `ToolSelector`, which decides which tools are registered
 - `config`: the `boot-mcp-doctor.*` properties

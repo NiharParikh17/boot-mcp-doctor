@@ -1,12 +1,12 @@
 # Releasing
 
-Releases are published to Maven Central under the `io.github.niharparikh17` namespace.
+Releases are published to Maven Central under the `com.nhparikh.repo` namespace.
 
 The [release workflow](.github/workflows/release.yml) does the whole release from one click. It checks that the version is new and that CI passed, waits for your approval, then builds, tests, signs and uploads to Maven Central, publishes, and creates the `vX.Y.Z` tag and GitHub release. Each module's CycloneDX SBOM goes to Maven Central, and the starter's SBOM is attached to the GitHub release. The workflow never pushes commits: the version comes from `pom.xml`, so moving `main` to the next version is a normal pull request.
 
 ## One-time setup
 
-1. **Central Portal account.** Sign in at [central.sonatype.com](https://central.sonatype.com) with your GitHub account. The `io.github.niharparikh17` namespace is verified automatically for GitHub sign-ins; check it under *Namespaces*.
+1. **Central Portal account and namespace.** Sign in at [central.sonatype.com](https://central.sonatype.com) and add the `com.nhparikh.repo` namespace under *Namespaces*. Central verifies it through a DNS TXT record on `nhparikh.com`; the namespace must show as verified before anything can be published.
 
 2. **Publishing token.** In the portal, open *View Account* → *Generate User Token*. Keep the token username and password for step 4.
 
