@@ -9,11 +9,33 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  * Configuration for boot-mcp-doctor.
  *
  * @param enabled Whether to register the MCP tools. Nothing is registered unless this is true.
+ * @param readOnly Whether to register only tools that read state. Tools that change state, such as
+ * set_log_level, are not registered at all while this is true.
+ * @param tools Which tools to register.
  * @param masking Masking applied to every tool response.
  * @param limits Size limits applied to every tool response.
  */
 @ConfigurationProperties(prefix = "boot-mcp-doctor")
-public record BootMcpDoctorProperties(boolean enabled, @DefaultValue Masking masking, @DefaultValue Limits limits) {
+public record BootMcpDoctorProperties(boolean enabled, @DefaultValue("true") boolean readOnly,
+        @DefaultValue Tools tools, @DefaultValue Masking masking, @DefaultValue Limits limits) {
+
+    /**
+     * Tool selection. A tool is registered when it is in {@code include} (or {@code include} is empty) and is
+     * not in {@code exclude}.
+     *
+     * @param include Names of the tools to register. Empty means all tools.
+     * @param exclude Names of tools never to register, even if they are included.
+     */
+    public record Tools(@DefaultValue List<String> include, @DefaultValue List<String> exclude) {
+
+        /**
+         * @param name a tool name, such as {@code get_health}
+         * @return whether the tool may be registered
+         */
+        public boolean allows(String name) {
+            return (this.include.isEmpty() || this.include.contains(name)) && !this.exclude.contains(name);
+        }
+    }
 
     /**
      * Masking settings. Built-in patterns ({@code password}, {@code secret}, {@code key}, {@code token},
