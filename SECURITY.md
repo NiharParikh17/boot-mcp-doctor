@@ -23,8 +23,10 @@ Every release includes a CycloneDX SBOM listing each dependency and its license.
 boot-mcp-doctor's job is to describe a running application without leaking secrets or changing it unexpectedly. Examples of issues to report privately:
 
 - A secret appears unmasked in any tool response.
-- A tool that changes state, such as `set_log_level`, is registered while `boot-mcp-doctor.read-only=true`, or while the endpoint's Actuator access is `none` or `read-only`.
+- A tool call succeeds without an authenticated caller, or without the configured `boot-mcp-doctor.security.read-authority` or `write-authority`, while Spring Security is on the classpath.
+- Tools are registered without Spring Security while `boot-mcp-doctor.security.allow-unauthenticated=false`.
+- A tool that changes state, such as `set_log_level`, is registered while `boot-mcp-doctor.read-only=true`, without Spring Security, before `security.write-authority` is set, or while the endpoint's Actuator access is `none` or `read-only`.
 - A tool is registered that `boot-mcp-doctor.tools.exclude` or Actuator access should have removed.
 - A response ignores `boot-mcp-doctor.limits.max-items` in a way that exposes more data than intended.
 
-The MCP endpoint has no authentication of its own. Leaving it reachable from untrusted networks is a deployment issue rather than a vulnerability; see the Security section of the [README](README.md#security).
+How callers authenticate is up to the application's Spring Security configuration. Running with `boot-mcp-doctor.security.allow-unauthenticated=true` where untrusted clients can reach the endpoint is a deployment issue rather than a vulnerability; see the Security section of the [README](README.md#security).
