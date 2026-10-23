@@ -1,0 +1,28 @@
+# Build output
+target/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+.factorypath
+*.swp
+
+# OS
+.DS_Store
+
+# Local environment and secrets
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+
+# Logs and dumps
+*.log
+*.hprof
