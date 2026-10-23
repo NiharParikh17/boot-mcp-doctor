@@ -1,10 +1,24 @@
 name: Release
 
-# Publishing a GitHub release tagged vX.Y.Z builds, signs and uploads that version to Maven Central.
-# The upload stops at "validated"; the final publish is a manual step on central.sonatype.com.
+# Releases main to Maven Central. Start it from the Actions tab: Release > Run workflow.
+# The version is the one in pom.xml without -SNAPSHOT, unless one is given. The run checks that the version is new and
+# that CI passed on the commit, waits for approval in the maven-central environment, then builds, signs, uploads and
+# publishes it, and finally creates the vX.Y.Z tag and GitHub release with the SBOM attached. It never pushes commits.
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release, such as 0.1.0. Leave empty to use pom.xml without -SNAPSHOT.
+        required: false
+        default: ''
+      dry_run:
+        description: Dry run. Build, test and sign the bundle, but upload nothing and create no release.
+        type: boolean
+        default: false
+      publish:
+        description: Publish on Maven Central once it is validated. This cannot be undone. Off stops at validated.
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -14,13 +28,88 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publish:
-    name: Upload to Maven Central
+  prepare:
+    name: Check the release
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Needed to look up the CI result for the commit.
+      actions: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Only from main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Releases run from main only, not $GITHUB_REF."
+          exit 1
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+
+      - name: Work out the version
+        id: version
+        env:
+          REQUESTED: ${{ inputs.version }}
+        run: |
+          pom_version=$(./mvnw -B -ntp -q help:evaluate -Dexpression=project.version -DforceStdout)
+          group=$(./mvnw -B -ntp -q help:evaluate -Dexpression=project.groupId -DforceStdout)
+          version="${REQUESTED:-${pom_version%-SNAPSHOT}}"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::The version must look like 1.2.3, got '$version' (pom.xml has $pom_version)."
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "group=$group" >> "$GITHUB_OUTPUT"
+          echo "Releasing $version from $GITHUB_SHA (pom.xml has $pom_version)."
+
+      - name: Check the version is new
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          GROUP: ${{ steps.version.outputs.group }}
+        run: |
+          if [ -n "$(git ls-remote --tags origin "refs/tags/v$VERSION")" ]; then
+            echo "::error::Tag v$VERSION already exists. Move main to the next version first."
+            exit 1
+          fi
+          pom="${GROUP//.//}/boot-mcp-doctor-parent/$VERSION/boot-mcp-doctor-parent-$VERSION.pom"
+          status=$(curl -s -o /dev/null -w '%{http_code}' "https://repo1.maven.org/maven2/$pom")
+          if [ "$status" = "200" ]; then
+            echo "::error::$VERSION is already on Maven Central, and published versions can never be replaced."
+            exit 1
+          fi
+
+      - name: Check CI passed on this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          passed=$(gh run list --repo "$GITHUB_REPOSITORY" --commit "$GITHUB_SHA" --workflow ci.yml \
+            --json conclusion --jq 'map(select(.conclusion == "success")) | length')
+          if [ "$passed" -eq 0 ]; then
+            echo "::error::CI has not passed on $GITHUB_SHA. Wait for it, or fix main first."
+            exit 1
+          fi
+
+  publish:
+    name: Publish to Maven Central
+    needs: prepare
+    runs-on: ubuntu-latest
+    # Pauses here until a reviewer approves; holds the signing key and Central credentials.
     environment: maven-central
     permissions:
-      # Needed only to attach the SBOM to the GitHub release.
+      # Needed to create the tag and GitHub release.
       contents: write
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      DRY_RUN: ${{ inputs.dry_run }}
+      PUBLISH: ${{ inputs.publish }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -37,30 +126,57 @@ jobs:
           gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
           gpg-passphrase-env-var: MAVEN_GPG_PASSPHRASE
 
-      - name: Set version from tag
-        env:
-          TAG: ${{ github.event.release.tag_name }}
-        run: |
-          version="${TAG#v}"
-          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::Release tag must look like v1.2.3, got '$TAG'"
-            exit 1
-          fi
-          ./mvnw -B -ntp versions:set -DnewVersion="$version" -DprocessAllModules -DgenerateBackupPoms=false
+      - name: Set the version
+        run: ./mvnw -B -ntp versions:set -DnewVersion="$VERSION" -DprocessAllModules -DgenerateBackupPoms=false
 
-      - name: Build, sign and upload
-        run: ./mvnw -B -ntp -P release deploy
+      # A dry run still signs everything, so it also checks the signing key and passphrase.
+      - name: Build, test, sign and upload
         env:
           MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then
+            ./mvnw -B -ntp -P release -DskipUpload deploy
+          elif [ "$PUBLISH" = "true" ]; then
+            ./mvnw -B -ntp -P release deploy -Dcentral.autoPublish=true -Dcentral.waitUntil=published \
+              -Dcentral.waitMaxTime=3600
+          else
+            ./mvnw -B -ntp -P release deploy
+          fi
 
-      # The starter's SBOM covers everything an application gets by adding the starter.
-      - name: Attach SBOM to the GitHub release
+      - name: List the bundle
+        if: inputs.dry_run
+        run: unzip -l target/central-publishing/central-bundle.zip
+
+      # The starter's SBOM covers everything an application gets by adding the starter. Until the version is
+      # published on Central, the release stays a draft so nobody is pointed at artifacts that don't exist yet.
+      - name: Create the tag and GitHub release
+        if: ${{ !inputs.dry_run }}
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.event.release.tag_name }}
         run: |
-          sbom="boot-mcp-doctor-${TAG#v}-sbom.cyclonedx.json"
+          sbom="boot-mcp-doctor-$VERSION-sbom.cyclonedx.json"
           cp boot-mcp-doctor-spring-boot-starter/target/bom.json "$sbom"
-          gh release upload "$TAG" "$sbom" --repo "$GITHUB_REPOSITORY"
+          draft=()
+          if [ "$PUBLISH" != "true" ]; then
+            draft=(--draft)
+          fi
+          gh release create "v$VERSION" "$sbom" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "v$VERSION" --generate-notes "${draft[@]}"
+
+      - name: Summary
+        run: |
+          {
+            echo "## Release $VERSION"
+            if [ "$DRY_RUN" = "true" ]; then
+              echo "Dry run: the bundle was built, tested and signed. Nothing was uploaded or tagged."
+            elif [ "$PUBLISH" = "true" ]; then
+              echo "Published to Maven Central. It can take up to 30 minutes to appear on repo1.maven.org."
+              echo
+              echo "Next: in a pull request, move main to the next -SNAPSHOT version and update the version in README.md."
+            else
+              echo "Uploaded and validated, not published. Publish it at https://central.sonatype.com/publishing/deployments,"
+              echo "then publish the draft GitHub release v$VERSION."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
