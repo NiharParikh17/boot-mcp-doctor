@@ -137,6 +137,10 @@ Run the sample app, which has a deliberately slow `/checkout` endpoint and a fai
 
 `./mvnw verify` also checks that line coverage of the auto-configuration module stays at 85% or more; the HTML report is written to `boot-mcp-doctor-autoconfigure/target/site/jacoco/`. Releases are covered in [RELEASING.md](RELEASING.md).
 
+## Feedback
+
+Found a bug, have an idea for a tool, or stuck on setup? [Open an issue](https://github.com/NiharParikh17/boot-mcp-doctor/issues/new/choose). Please report security problems privately, as described in [SECURITY.md](SECURITY.md).
+
 ## License
 
 [Apache License 2.0](LICENSE)
