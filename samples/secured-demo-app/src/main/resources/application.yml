@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: secured-order-service
+  ai:
+    mcp:
+      server:
+        name: secured-order-service
+        version: 0.1.0
+        # Streamable HTTP on /mcp. Without this, Spring AI falls back to the older SSE transport on /sse.
+        protocol: STREAMABLE
+        annotation-scanner:
+          enabled: false
+
+boot-mcp-doctor:
+  enabled: true
+  # Registers set_log_level, which only callers with the write authority may call.
+  read-only: false
+  security:
+    read-authority: ROLE_OPS
+    write-authority: ROLE_OPS_ADMIN
+
+demo:
+  # Password of the sample's users: ops, admin and viewer. Only for trying the sample on your own machine.
+  password: demo-password
