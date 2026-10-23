@@ -255,18 +255,55 @@ class BootMcpDoctorAutoConfigurationTests {
                     HealthEndpointAutoConfiguration.class))
             .withBean("db", HealthIndicator.class, () -> () -> Health.up().build())
             .run((context) -> {
-                SyncToolSpecification getHealth = specifications(context).stream()
-                    .filter((spec) -> spec.tool().name().equals("get_health"))
-                    .findFirst()
-                    .orElseThrow();
-                SecurityContextHolder.getContext()
-                    .setAuthentication(UsernamePasswordAuthenticationToken.authenticated("ops", null, List.of()));
-                CallToolResult result = getHealth.callHandler()
-                    .apply(null, CallToolRequest.builder("get_health").arguments(Map.of()).build());
-                assertThat(result.isError()).isNotEqualTo(Boolean.TRUE);
-                assertThat(((TextContent) result.content().get(0)).text()).contains("\"status\":\"UP\"")
-                    .contains("\"name\":\"db\"");
+                assertThat(context).hasSingleBean(HealthEndpoint.class);
+                assertThat(getHealth(context)).contains("\"status\":\"UP\"").contains("\"name\":\"db\"");
             });
+    }
+
+    // Spring Boot leaves out the health endpoint while health is not exposed; samples/demo-app's
+    // HealthNotExposedTests covers that in a running application.
+    @Test
+    void getHealthReadsTheContributorsWithoutTheHealthEndpoint() {
+        this.enabled.withConfiguration(AutoConfigurations.of(HealthContributorRegistryAutoConfiguration.class))
+            .withBean("db", HealthIndicator.class,
+                    () -> () -> Health.down().withDetail("password", "s3cret").withDetail("pool", "orders").build())
+            .withBean("diskSpace", HealthIndicator.class, () -> () -> Health.up().build())
+            .run((context) -> {
+                assertThat(context).doesNotHaveBean(HealthEndpoint.class);
+                assertThat(getHealth(context)).contains("\"status\":\"DOWN\"")
+                    .contains("1 of 2 components are not UP: db (DOWN)")
+                    .contains("\"password\":\"******\"")
+                    .contains("\"pool\":\"orders\"")
+                    .doesNotContain("s3cret");
+            });
+    }
+
+    @Test
+    void getHealthFollowsTheStatusOrderWithoutTheHealthEndpoint() {
+        this.enabled.withConfiguration(AutoConfigurations.of(HealthContributorRegistryAutoConfiguration.class))
+            .withPropertyValues("management.endpoint.health.status.order=out-of-service,up,down")
+            .withBean("db", HealthIndicator.class, () -> () -> Health.down().build())
+            .withBean("diskSpace", HealthIndicator.class, () -> () -> Health.up().build())
+            .run((context) -> assertThat(getHealth(context)).contains("\"status\":\"UP\""));
+    }
+
+    @Test
+    void getHealthIsUnavailableWithoutHealthContributors() {
+        this.enabled.run((context) -> assertThat(getHealth(context))
+            .contains("Health not available. Is spring-boot-starter-actuator on the classpath?"));
+    }
+
+    private static String getHealth(AssertableApplicationContext context) {
+        SyncToolSpecification getHealth = specifications(context).stream()
+            .filter((spec) -> spec.tool().name().equals("get_health"))
+            .findFirst()
+            .orElseThrow();
+        SecurityContextHolder.getContext()
+            .setAuthentication(UsernamePasswordAuthenticationToken.authenticated("ops", null, List.of()));
+        CallToolResult result = getHealth.callHandler()
+            .apply(null, CallToolRequest.builder("get_health").arguments(Map.of()).build());
+        assertThat(result.isError()).isNotEqualTo(Boolean.TRUE);
+        return ((TextContent) result.content().get(0)).text();
     }
 
     @SuppressWarnings("unchecked")
