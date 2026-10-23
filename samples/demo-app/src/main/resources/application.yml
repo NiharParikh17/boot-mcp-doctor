@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: order-service
+  ai:
+    mcp:
+      server:
+        name: order-service
+        version: 0.1.0
+        # Streamable HTTP on /mcp. Without this, Spring AI falls back to the older SSE transport on /sse.
+        protocol: STREAMABLE
+
+boot-mcp-doctor:
+  enabled: true
+
+demo:
+  inventory:
+    # Set to true to make the inventory health check pass.
+    available: false

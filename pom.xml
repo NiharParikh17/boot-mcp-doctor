@@ -38,6 +38,7 @@
     <modules>
         <module>boot-mcp-doctor-autoconfigure</module>
         <module>boot-mcp-doctor-spring-boot-starter</module>
+        <module>samples/demo-app</module>
     </modules>
 
     <properties>
