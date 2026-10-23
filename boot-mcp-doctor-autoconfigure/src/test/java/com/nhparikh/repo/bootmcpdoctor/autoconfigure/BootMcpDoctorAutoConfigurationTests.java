@@ -25,10 +25,13 @@ import org.springframework.boot.micrometer.metrics.actuate.endpoint.MetricsEndpo
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.assertj.AssertableApplicationContext;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.filter.OncePerRequestFilter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -197,6 +200,46 @@ class BootMcpDoctorAutoConfigurationTests {
             .run((context) -> assertThat(toolNames(context)).doesNotContain("get_metric", "list_metrics",
                     "get_slow_endpoints")
                 .contains("get_health"));
+    }
+
+    @Test
+    void registersTheConnectionLogFilterOnTheMcpEndpoints() {
+        new WebApplicationContextRunner().withConfiguration(AutoConfigurations.of(BootMcpDoctorAutoConfiguration.class))
+            .withPropertyValues("boot-mcp-doctor.enabled=true")
+            .run((context) -> {
+                FilterRegistrationBean<?> registration = context.getBean("bootMcpDoctorConnectionLogFilter",
+                        FilterRegistrationBean.class);
+                assertThat(registration.getFilter()).isInstanceOf(ConnectionLogFilter.class);
+                assertThat(registration.getUrlPatterns()).containsExactly("/mcp", "/mcp/message");
+                assertThat(registration.getOrder()).isEqualTo(ConnectionLogFilter.ORDER);
+            });
+    }
+
+    @Test
+    void connectionLogFilterFollowsTheServletPathAndEndpoints() {
+        new WebApplicationContextRunner().withConfiguration(AutoConfigurations.of(BootMcpDoctorAutoConfiguration.class))
+            .withPropertyValues("boot-mcp-doctor.enabled=true", "spring.mvc.servlet.path=/api/",
+                    "spring.ai.mcp.server.streamable-http.mcp-endpoint=/ops/mcp",
+                    "spring.ai.mcp.server.sse-message-endpoint=/ops/message")
+            .run((context) -> assertThat(
+                    context.getBean("bootMcpDoctorConnectionLogFilter", FilterRegistrationBean.class).getUrlPatterns())
+                .containsExactly("/api/ops/mcp", "/api/ops/message"));
+    }
+
+    @Test
+    void noConnectionLogFilterOutsideServletApplications() {
+        this.enabled.run((context) -> assertThat(context).hasNotFailed()
+            .doesNotHaveBean("bootMcpDoctorConnectionLogFilter"));
+    }
+
+    @Test
+    void noConnectionLogFilterWithoutSpringWeb() {
+        new WebApplicationContextRunner().withConfiguration(AutoConfigurations.of(BootMcpDoctorAutoConfiguration.class))
+            .withPropertyValues("boot-mcp-doctor.enabled=true")
+            .withClassLoader(new FilteredClassLoader(OncePerRequestFilter.class))
+            .run((context) -> assertThat(context).hasNotFailed()
+                .doesNotHaveBean("bootMcpDoctorConnectionLogFilter")
+                .hasBean("bootMcpDoctorToolSpecifications"));
     }
 
     @Test
