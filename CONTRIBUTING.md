@@ -2,6 +2,8 @@
 
 Thanks for your interest in boot-mcp-doctor. Bug reports, ideas, documentation fixes and code are all welcome.
 
+Everyone taking part in the project is expected to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## Ways to contribute
 
 - **Report a bug or ask a question:** [open an issue](https://github.com/NiharParikh17/boot-mcp-doctor/issues/new/choose) using one of the templates.
