@@ -78,7 +78,7 @@ There's no automatic formatter yet, so please match the surrounding code:
 - Javadoc on public classes, methods and properties; keep internal classes package-private where possible
 - one tool group per class, kept small
 
-Please don't add a dependency without explaining why in the pull request.
+Please don't add a dependency without explaining why in the pull request. New dependencies must be licensed under Apache-2.0, MIT, MIT-0, BSD-2-Clause, BSD-3-Clause, ISC, EPL-1.0, EPL-2.0, CC0-1.0 or a Unicode license; a dual-licensed package passes if one of its options is on that list. The *Review dependency changes* check enforces this, and also fails when a new dependency has a known vulnerability of moderate severity or higher.
 
 ## Commits and pull requests
 
