@@ -17,6 +17,7 @@ import io.modelcontextprotocol.server.McpStatelessServerFeatures;
 import org.springframework.ai.mcp.annotation.McpTool;
 import org.springframework.ai.mcp.annotation.spring.SyncMcpAnnotationProviders;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.actuate.endpoint.SanitizingFunction;
 import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -42,6 +43,8 @@ import org.springframework.core.env.Environment;
  * With Spring Security on the classpath, every tool call is checked against the authenticated caller and
  * {@code boot-mcp-doctor.security.*}. Without it, no tools are registered unless
  * {@code boot-mcp-doctor.security.allow-unauthenticated=true}, and tools that change state never are.
+ * <p>
+ * Once the application is ready, it logs where the tools are served and who may call them.
  */
 @AutoConfiguration
 @ConditionalOnClass(value = { Endpoint.class, McpTool.class }, name = "io.modelcontextprotocol.server.McpServer")
@@ -83,6 +86,14 @@ public class BootMcpDoctorAutoConfiguration {
             .stream()
             .map(guard::guard)
             .toList();
+    }
+
+    @Bean
+    StartupLog bootMcpDoctorStartupLog(
+            @Qualifier("bootMcpDoctorToolSpecifications") List<McpServerFeatures.SyncToolSpecification> specifications,
+            ObjectProvider<ToolAuthorizer> authorizer, BootMcpDoctorProperties properties) {
+        return new StartupLog(specifications.stream().map(McpServerFeatures.SyncToolSpecification::tool).toList(),
+                properties.security(), authorizer.getIfAvailable() != null);
     }
 
     @Bean
@@ -139,10 +150,11 @@ public class BootMcpDoctorAutoConfiguration {
 
         // The MCP endpoints and Actuator are infrastructure, not application endpoints.
         private static List<String> ignoredPaths(Environment environment) {
+            McpEndpoints endpoints = new McpEndpoints(environment);
             List<String> paths = new ArrayList<>();
-            paths.add(environment.getProperty("spring.ai.mcp.server.streamable-http.mcp-endpoint", "/mcp"));
-            paths.add(environment.getProperty("spring.ai.mcp.server.sse-endpoint", "/sse"));
-            paths.add(environment.getProperty("spring.ai.mcp.server.sse-message-endpoint", "/mcp/message"));
+            paths.add(endpoints.streamableHttp());
+            paths.add(endpoints.sse());
+            paths.add(endpoints.sseMessage());
             String actuator = environment.getProperty("management.endpoints.web.base-path", "/actuator");
             if (!actuator.isEmpty() && !"/".equals(actuator)) {
                 paths.add(actuator);
