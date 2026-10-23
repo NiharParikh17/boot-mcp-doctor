@@ -18,6 +18,9 @@ jobs:
     name: Upload to Maven Central
     runs-on: ubuntu-latest
     environment: maven-central
+    permissions:
+      # Needed only to attach the SBOM to the GitHub release.
+      contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -51,3 +54,13 @@ jobs:
           MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+
+      # The starter's SBOM covers everything an application gets by adding the starter.
+      - name: Attach SBOM to the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          sbom="boot-mcp-doctor-${TAG#v}-sbom.cyclonedx.json"
+          cp boot-mcp-doctor-spring-boot-starter/target/bom.json "$sbom"
+          gh release upload "$TAG" "$sbom" --repo "$GITHUB_REPOSITORY"

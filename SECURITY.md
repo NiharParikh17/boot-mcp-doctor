@@ -10,6 +10,14 @@ Report them privately through GitHub instead: open the [Security tab](https://gi
 
 Fixes go into the latest release. Until 0.1.0 is published, that means `main`.
 
+## Dependencies
+
+Dependabot alerts watch every dependency on `main` for newly published vulnerabilities. CI submits the fully resolved Maven tree to GitHub so that versions managed by the Spring Boot and Spring AI BOMs are covered too. A pull request that adds a dependency with a known vulnerability of moderate severity or higher fails the *Review dependency changes* check.
+
+Vulnerable dependencies are fixed by upgrading, usually to the latest Spring Boot or Spring AI patch release, followed by a patch release of boot-mcp-doctor when the published artifacts are affected. Most dependencies are managed by Spring Boot, so an application normally runs the versions from its own Spring Boot version; keeping that on its latest patch release matters most.
+
+Every release includes a CycloneDX SBOM listing each dependency and its license. It is attached to the GitHub release and published to Maven Central next to each artifact with the `cyclonedx` classifier.
+
 ## What counts as a vulnerability
 
 boot-mcp-doctor's job is to describe a running application without leaking secrets or changing it unexpectedly. Examples of issues to report privately:

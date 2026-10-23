@@ -2,7 +2,7 @@
 
 Releases are published to Maven Central under the `io.github.niharparikh17` namespace.
 
-Publishing a GitHub release tagged `vX.Y.Z` runs the [release workflow](.github/workflows/release.yml), which builds, tests, signs and uploads that version. The upload stops once Maven Central has validated it. The final publish is a manual click on central.sonatype.com, because a published version can never be changed or removed.
+Publishing a GitHub release tagged `vX.Y.Z` runs the [release workflow](.github/workflows/release.yml), which builds, tests, signs and uploads that version. Each module's CycloneDX SBOM goes to Maven Central with it, and the starter's SBOM is also attached to the GitHub release. The upload stops once Maven Central has validated it. The final publish is a manual click on central.sonatype.com, because a published version can never be changed or removed.
 
 ## One-time setup
 
