@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -27,6 +29,8 @@ class ToolSelector {
     private final BootMcpDoctorProperties properties;
 
     private final Environment environment;
+
+    private final AtomicBoolean warned = new AtomicBoolean();
 
     ToolSelector(List<ToolGroup> groups, BootMcpDoctorProperties properties, Environment environment) {
         this.groups = groups;
@@ -56,25 +60,36 @@ class ToolSelector {
     }
 
     /**
-     * Filters tool specifications by {@code boot-mcp-doctor.tools.include} and {@code exclude}, warning about names
-     * that match no tool.
-     * @param specifications the specifications built from {@link #toolObjects()}
+     * Builds the tool specifications to register: converts {@link #toolObjects()} with {@code provider}, then keeps
+     * the ones that {@code boot-mcp-doctor.tools.include} and {@code exclude} allow. Names in those lists that match
+     * no tool that can be registered are logged once.
+     * @param provider converts tool objects into specifications
      * @param name extracts the tool name from a specification
      * @param <T> the specification type
      * @return the specifications to register
      */
-    <T> List<T> filter(List<T> specifications, Function<T, String> name) {
+    <T> List<T> specifications(Function<List<Object>, List<T>> provider, Function<T, String> name) {
+        List<Object> objects = toolObjects();
+        // The annotation converter warns when it is given nothing to convert.
+        List<T> specifications = objects.isEmpty() ? List.of() : provider.apply(objects);
+        Set<String> available = specifications.stream().map(name).collect(Collectors.toCollection(TreeSet::new));
+        warnAboutUnregisteredNames(available);
         BootMcpDoctorProperties.Tools tools = this.properties.tools();
-        Set<String> available = specifications.stream().map(name).collect(Collectors.toSet());
-        List<String> unknown = Stream.concat(tools.include().stream(), tools.exclude().stream())
+        return specifications.stream().filter((spec) -> tools.allows(name.apply(spec))).toList();
+    }
+
+    // Called once for the regular and once for the stateless specifications; the warning only needs saying once.
+    private void warnAboutUnregisteredNames(Set<String> available) {
+        BootMcpDoctorProperties.Tools tools = this.properties.tools();
+        List<String> unregistered = Stream.concat(tools.include().stream(), tools.exclude().stream())
             .filter((tool) -> !available.contains(tool))
             .distinct()
             .toList();
-        if (!unknown.isEmpty()) {
-            logger.warn("boot-mcp-doctor.tools lists tools that are not available and will be ignored: " + unknown
-                    + ". Available tools: " + available.stream().sorted().toList());
+        if (!unregistered.isEmpty() && this.warned.compareAndSet(false, true)) {
+            logger.warn("boot-mcp-doctor.tools names tools that will not be registered: " + unregistered
+                    + ". They may be misspelled, need a module that is not on the classpath, or be left out by "
+                    + "read-only mode or Actuator access settings. Tools that can be registered: " + available);
         }
-        return specifications.stream().filter((spec) -> tools.allows(name.apply(spec))).toList();
     }
 
     // Mirrors management.endpoint.<id>.access, capped by management.endpoints.access.max-permitted.
