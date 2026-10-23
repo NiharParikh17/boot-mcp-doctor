@@ -1,11 +1,12 @@
 # boot-mcp-doctor
 
 [![CI](https://github.com/NiharParikh17/boot-mcp-doctor/actions/workflows/ci.yml/badge.svg)](https://github.com/NiharParikh17/boot-mcp-doctor/actions/workflows/ci.yml)
+[![Maven Central](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Frepo1.maven.org%2Fmaven2%2Fcom%2Fnhparikh%2Frepo%2Fboot-mcp-doctor-spring-boot-starter%2Fmaven-metadata.xml&label=Maven%20Central)](https://central.sonatype.com/artifact/com.nhparikh.repo/boot-mcp-doctor-spring-boot-starter)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
 A Spring Boot starter that turns your application into an [MCP](https://modelcontextprotocol.io) server for its own operations. Add one dependency and any MCP client can ask the *running* application about its health, metrics, slow endpoints, configuration and log levels, in-process, with no separate server and no copy-pasting Actuator JSON.
 
-> **Status:** early development. Not yet published to Maven Central.
+> **Status:** early development. 0.1.0 is the first release, and the tools and settings may still change before 1.0.
 
 ## Example
 
@@ -60,7 +61,7 @@ Add the starter:
 <dependency>
     <groupId>com.nhparikh.repo</groupId>
     <artifactId>boot-mcp-doctor-spring-boot-starter</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.0</version>
 </dependency>
 ```
 
