@@ -1,0 +1,66 @@
+name: Dependencies
+
+# Keeps GitHub's dependency graph accurate for Dependabot alerts, and checks every pull request for newly added
+# dependencies with known vulnerabilities or licenses outside the allow-list in CONTRIBUTING.md.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependencies-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  submit:
+    name: Submit dependency graph
+    # GitHub can't resolve versions managed by the Spring Boot and Spring AI BOMs from the POMs alone, so the
+    # resolved Maven tree is submitted instead. Pull requests from forks get a read-only token and skip this.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+
+      - uses: advanced-security/maven-dependency-submission-action@a64327a7329c9939cf675e458452febe1894a70c # v6.0.1
+        with:
+          # On pull requests, link the snapshot to the head commit so dependency review can compare against it.
+          snapshot-sha: ${{ github.event.pull_request.head.sha || github.sha }}
+          snapshot-ref: ${{ github.event_name == 'pull_request' && format('refs/heads/{0}', github.head_ref) || github.ref }}
+
+  review:
+    name: Review dependency changes
+    needs: submit
+    if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: moderate
+          allow-licenses: >-
+            Apache-2.0, MIT, MIT-0, BSD-2-Clause, BSD-3-Clause, ISC, EPL-1.0, EPL-2.0,
+            CC0-1.0, Unicode-3.0, Unicode-DFS-2016
+          # Packages whose license data GitHub gets wrong:
+          # - ANTLR's POMs only say "BSD", which tools sometimes read as BSD-4-Clause. The license they link to,
+          #   antlr.org/license.html, is BSD-3-Clause. Both arrive through Spring AI's template module.
+          # - Logback is dual-licensed under EPL-2.0 or LGPL-2.1 (logback.qos.ch/license.html), but GitHub lists
+          #   "EPL-2.0 AND LGPL-2.1", as if both applied. EPL-2.0 is on the allow-list.
+          allow-dependencies-licenses: >-
+            pkg:maven/org.antlr/ST4, pkg:maven/org.antlr/antlr-runtime,
+            pkg:maven/ch.qos.logback/logback-classic, pkg:maven/ch.qos.logback/logback-core
+          show-patched-versions: true
+          retry-on-snapshot-warnings: true
+          retry-on-snapshot-warnings-timeout: 300
