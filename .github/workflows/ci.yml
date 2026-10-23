@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build on JDK ${{ matrix.java }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        java: [17, 21, 25]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+          cache: maven
+
+      - name: Build and test
+        run: ./mvnw -B -ntp verify
+
+      - name: Upload coverage report
+        if: matrix.java == 17
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-report
+          path: boot-mcp-doctor-autoconfigure/target/site/jacoco/
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-reports-jdk-${{ matrix.java }}
+          path: '**/target/surefire-reports/'
+
+  release-bundle:
+    name: Check release bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+
+      # Builds the Maven Central bundle (sources, javadoc, POMs) without signing or uploading it, so problems
+      # such as broken javadoc show up in pull requests instead of at release time. Snapshot versions skip the
+      # bundle, so the version is set to the upcoming release first.
+      - name: Use release version
+        run: ./mvnw -B -ntp versions:set -DremoveSnapshot -DprocessAllModules -DgenerateBackupPoms=false
+
+      - name: Build release bundle
+        run: ./mvnw -B -ntp -P release -DskipTests -Dgpg.skip -DskipUpload deploy
+
+      - name: List bundle contents
+        run: unzip -l target/central-publishing/central-bundle.zip
