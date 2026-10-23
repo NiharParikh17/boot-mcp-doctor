@@ -8,7 +8,7 @@ A Spring Boot starter that turns your application into an [MCP](https://modelcon
 
 > **Status:** early development. 0.1.0 is the first release, and the tools and settings may still change before 1.0.
 
-**Contents:** [Example](#example) · [How it works](#how-it-works) · [Quick start](#quick-start) · [Tools](#tools) · [Configuration](#configuration) · [Security](#security) · [Building from source](#building-from-source)
+**Contents:** [Example](#example) · [How it works](#how-it-works) · [Quick start](#quick-start) · [Tools](#tools) · [Configuration](#configuration) · [Logs](#logs) · [Security](#security) · [Building from source](#building-from-source)
 
 Sections marked ▶ expand when you click them.
 
@@ -147,6 +147,8 @@ Without `protocol: STREAMABLE`, Spring AI 2.0 serves the older SSE transport on 
 ### 4. Connect a client
 
 Point any MCP client that supports Streamable HTTP at `http://localhost:8080/mcp`. If the endpoint requires authentication, configure the client to send the same credentials your application expects, such as an `Authorization` header.
+
+The application logs the exact path and port at startup, including any context path, and logs each client that connects; see [Logs](#logs).
 
 <details>
 <summary><b>Clients that can only start local processes</b></summary>
@@ -336,6 +338,19 @@ boot-mcp-doctor:
 
 </details>
 
+## Logs
+
+Once the application is ready, boot-mcp-doctor logs where its tools are served and who may call them. It also logs each MCP client that connects:
+
+```text
+INFO  c.n.r.b.autoconfigure.StartupLog  : boot-mcp-doctor is running at /api/xyz/mcp on port 8090 (Streamable HTTP) with 6 read-only tools: get_environment, get_health, get_loggers, get_metric, get_slow_endpoints, list_metrics. Tool calls need a caller authenticated by Spring Security.
+INFO  c.n.r.b.a.ConnectionLogFilter     : MCP client connected: Visual Studio Code 1.105.1 (protocol 2025-06-18, session bf022b6e, user ops, from 10.0.0.7)
+```
+
+- **Startup.** The path includes the context path and the DispatcherServlet path, so it is what your MCP client needs after `http://<host>:<port>`. Instead of that line, a warning is logged when no MCP server serves the tools or no tools are registered. A second warning follows it when `security.allow-unauthenticated=true` lets callers in without authenticating.
+- **Connections.** A client is logged when its `initialize` request succeeds, with the name and version it reports, the protocol version, the start of its session ID, the user Spring Security authenticated and its address. Requests that Spring Security turns away are not logged. Client names and versions are sent by the client, so line breaks and other control characters are replaced and long values are shortened. Connections are logged in servlet (Spring MVC) applications.
+- **Turning them off.** Set `logging.level.com.nhparikh.repo.bootmcpdoctor.autoconfigure.ConnectionLogFilter=WARN` to stop the connection lines, or `logging.level.com.nhparikh.repo.bootmcpdoctor=WARN` to keep only warnings.
+
 ## Security
 
 These tools describe the internals of a running application to whoever can reach the MCP endpoint. Treat that endpoint like an Actuator endpoint.
@@ -351,7 +366,7 @@ These tools describe the internals of a running application to whoever can reach
 <details>
 <summary><b>Example: protect the endpoint with Spring Security</b></summary>
 
-A minimal setup with HTTP Basic. For production, prefer OAuth2 bearer tokens or API keys in the same filter chain. MCP clients don't send CSRF tokens, so CSRF protection is turned off for `/mcp` only.
+A minimal setup with HTTP Basic. For production, prefer OAuth2 bearer tokens or API keys in the same filter chain. MCP clients don't send CSRF tokens, so CSRF protection is turned off for `/mcp` only (add `/mcp/message` if you use SSE).
 
 ```java
 @Configuration

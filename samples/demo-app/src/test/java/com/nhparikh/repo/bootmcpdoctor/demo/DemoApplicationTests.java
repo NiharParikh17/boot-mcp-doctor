@@ -12,19 +12,24 @@ import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.client.transport.HttpClientStreamableHttpTransport;
 import io.modelcontextprotocol.spec.McpSchema.CallToolRequest;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
+import io.modelcontextprotocol.spec.McpSchema.Implementation;
 import io.modelcontextprotocol.spec.McpSchema.TextContent;
 import io.modelcontextprotocol.spec.McpSchema.Tool;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, properties = "demo.checkout.delay=100ms")
+@ExtendWith(OutputCaptureExtension.class)
 class DemoApplicationTests {
 
     @Value("${local.server.port}")
@@ -34,7 +39,9 @@ class DemoApplicationTests {
 
     @BeforeEach
     void connect() {
-        this.client = McpClient.sync(HttpClientStreamableHttpTransport.builder(baseUrl()).build()).build();
+        this.client = McpClient.sync(HttpClientStreamableHttpTransport.builder(baseUrl()).build())
+            .clientInfo(new Implementation("demo-tests", "1.0.0"))
+            .build();
         this.client.initialize();
     }
 
@@ -48,6 +55,17 @@ class DemoApplicationTests {
         assertThat(this.client.listTools().tools()).extracting(Tool::name)
             .containsExactlyInAnyOrder("get_health", "list_metrics", "get_metric", "get_slow_endpoints",
                     "get_environment", "get_loggers");
+    }
+
+    @Test
+    void logsWhereToolsAreServedAndWhoConnected(CapturedOutput output) {
+        assertThat(output)
+            .contains("boot-mcp-doctor is running at /mcp on port " + this.port + " (Streamable HTTP) with 6 read-only "
+                    + "tools: get_environment, get_health, get_loggers, get_metric, get_slow_endpoints, list_metrics. "
+                    + "Tool calls are not authenticated.")
+            .contains("boot-mcp-doctor.security.allow-unauthenticated=true: anyone who can reach the MCP endpoint")
+            .containsPattern("MCP client connected: demo-tests 1\\.0\\.0 \\(protocol [0-9-]+, session [0-9a-f-]{8}, "
+                    + "not authenticated, from [^)]+\\)");
     }
 
     @Test
