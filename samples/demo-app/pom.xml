@@ -16,7 +16,12 @@
     <description>Sample order service with a slow endpoint and a failing health check.</description>
 
     <properties>
+        <!-- The sample is never published to Maven Central. -->
+        <skipPublishing>true</skipPublishing>
         <maven.deploy.skip>true</maven.deploy.skip>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <maven.source.skip>true</maven.source.skip>
+        <gpg.skip>true</gpg.skip>
     </properties>
 
     <dependencies>

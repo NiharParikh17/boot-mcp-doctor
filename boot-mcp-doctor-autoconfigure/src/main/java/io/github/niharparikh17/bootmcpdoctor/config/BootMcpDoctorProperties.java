@@ -53,6 +53,11 @@ public record BootMcpDoctorProperties(boolean enabled, @DefaultValue("true") boo
      */
     public record Limits(@DefaultValue("50") int maxItems) {
 
+        /**
+         * Validates the limits.
+         * @param maxItems maximum number of entries in any list or map returned by a tool
+         * @throws IllegalArgumentException if {@code maxItems} is less than 1
+         */
         public Limits {
             if (maxItems < 1) {
                 throw new IllegalArgumentException("boot-mcp-doctor.limits.max-items must be at least 1");
