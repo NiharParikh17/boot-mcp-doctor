@@ -1,0 +1,67 @@
+name: Feature request
+description: Suggest a new tool, an improvement to an existing one, or another enhancement.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea. The most useful requests start from a real situation: what you were trying to find out about a running application, and what got in the way.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the situation in your own words.
+      placeholder: When a request is slow, I can't tell whether the time goes to the database or a downstream HTTP call.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What should boot-mcp-doctor do? For a new tool, include a name, its inputs and what it should return.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - New tool
+        - Existing tool
+        - Configuration
+        - Safety and masking
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: changes-state
+    attributes:
+      label: Would this change the running application's state?
+      description: Tools are read-only by default. Anything that changes state, like set_log_level, is opt-in and needs extra care.
+      options:
+        - No, it only reads information
+        - Yes, it changes state
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other ways you've solved this, or other approaches you thought about.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched the existing issues and this hasn't been requested yet.
+          required: true
+        - label: I'd be willing to open a pull request for this.

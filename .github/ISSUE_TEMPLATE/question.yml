@@ -1,0 +1,41 @@
+name: Question
+description: Ask how to set up or use boot-mcp-doctor.
+title: "[Question]: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The [README](https://github.com/NiharParikh17/boot-mcp-doctor#readme) covers setup, every tool and every configuration property, so it may already have the answer.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+    validations:
+      required: true
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: What have you tried?
+      description: Configuration, commands or tool calls you've tried, and what happened.
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Versions
+      description: boot-mcp-doctor, Spring Boot, Spring AI and Java versions, plus the MCP client you're using.
+      placeholder: |
+        boot-mcp-doctor 0.1.0
+        Spring Boot 4.1.2
+        Spring AI 2.0.2
+        Java 21
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I removed secrets, tokens, internal hostnames and personal data from everything above.
+          required: true

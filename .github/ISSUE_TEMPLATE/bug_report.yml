@@ -1,0 +1,136 @@
+name: Bug report
+description: Something in boot-mcp-doctor doesn't work as documented.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug.
+
+        Tool responses, configuration and logs can contain internal hostnames, credentials or customer data. Please **remove anything sensitive** before posting. To report a security vulnerability, don't open an issue; follow the [security policy](https://github.com/NiharParikh17/boot-mcp-doctor/security/policy) instead.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear description of the bug.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: tool
+    attributes:
+      label: Which tool is affected?
+      options:
+        - get_health
+        - get_slow_endpoints
+        - list_metrics
+        - get_metric
+        - get_environment
+        - get_loggers
+        - set_log_level
+        - Not a specific tool (startup, configuration or tool registration)
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: The smallest setup that shows the problem. A link to a sample project helps most.
+      placeholder: |
+        1. Add boot-mcp-doctor-spring-boot-starter to a Spring Boot 4.1 application
+        2. Set boot-mcp-doctor.enabled=true
+        3. Call get_slow_endpoints from an MCP client
+        4. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: The tool response or error you got, with secrets removed.
+      render: json
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: boot-mcp-doctor version
+      placeholder: 0.1.0
+    validations:
+      required: true
+
+  - type: input
+    id: spring-boot-version
+    attributes:
+      label: Spring Boot version
+      placeholder: 4.1.2
+    validations:
+      required: true
+
+  - type: input
+    id: spring-ai-version
+    attributes:
+      label: Spring AI version
+      placeholder: 2.0.2
+
+  - type: input
+    id: java-version
+    attributes:
+      label: Java version
+      placeholder: Temurin 21.0.5
+    validations:
+      required: true
+
+  - type: dropdown
+    id: transport
+    attributes:
+      label: MCP transport
+      description: The value of `spring.ai.mcp.server.protocol`.
+      options:
+        - STREAMABLE
+        - SSE (or not set)
+        - STATELESS
+        - Not sure
+
+  - type: input
+    id: client
+    attributes:
+      label: MCP client
+      description: The application or library calling the tools, and its version.
+      placeholder: MCP Java SDK 2.1.0
+
+  - type: textarea
+    id: configuration
+    attributes:
+      label: Relevant configuration
+      description: Your `boot-mcp-doctor.*`, `spring.ai.mcp.server.*` and `management.*` properties.
+      render: yaml
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Startup or error logs, with secrets removed.
+      render: text
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched the existing issues and this hasn't been reported yet.
+          required: true
+        - label: I removed secrets, tokens, internal hostnames and personal data from everything above.
+          required: true
