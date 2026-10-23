@@ -7,70 +7,51 @@ import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.Map;
 
-import io.modelcontextprotocol.client.McpClient;
+import com.jayway.jsonpath.JsonPath;
 import io.modelcontextprotocol.client.McpSyncClient;
-import io.modelcontextprotocol.client.transport.HttpClientStreamableHttpTransport;
-import io.modelcontextprotocol.spec.McpSchema.CallToolRequest;
-import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
-import io.modelcontextprotocol.spec.McpSchema.Implementation;
-import io.modelcontextprotocol.spec.McpSchema.TextContent;
-import io.modelcontextprotocol.spec.McpSchema.Tool;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.system.CapturedOutput;
-import org.springframework.boot.test.system.OutputCaptureExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, properties = "demo.checkout.delay=100ms")
-@ExtendWith(OutputCaptureExtension.class)
-class DemoApplicationTests {
-
-    @Value("${local.server.port}")
-    private int port;
+/**
+ * The demo application as it ships: Streamable HTTP on {@code /mcp}, read-only, and no Spring Security, so it opts in
+ * to unauthenticated calls. Every read tool is called the way an assistant would call it.
+ */
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT,
+        properties = { "demo.checkout.delay=100ms", "demo.request-id-header=X-Request-Id" })
+class DemoApplicationTests extends McpAppTest {
 
     private McpSyncClient client;
 
     @BeforeEach
     void connect() {
-        this.client = McpClient.sync(HttpClientStreamableHttpTransport.builder(baseUrl()).build())
-            .clientInfo(new Implementation("demo-tests", "1.0.0"))
-            .build();
-        this.client.initialize();
-    }
-
-    @AfterEach
-    void disconnect() {
-        this.client.close();
-    }
-
-    @Test
-    void registersReadOnlyTools() {
-        assertThat(this.client.listTools().tools()).extracting(Tool::name)
-            .containsExactlyInAnyOrder("get_health", "list_metrics", "get_metric", "get_slow_endpoints",
-                    "get_environment", "get_loggers");
+        this.client = connect("/mcp");
     }
 
     @Test
     void logsWhereToolsAreServedAndWhoConnected(CapturedOutput output) {
         assertThat(output)
             .contains("boot-mcp-doctor is running at /mcp on port " + this.port + " (Streamable HTTP) with 6 read-only "
-                    + "tools: get_environment, get_health, get_loggers, get_metric, get_slow_endpoints, list_metrics. "
-                    + "Tool calls are not authenticated.")
+                    + "tools: " + READ_TOOLS + ". Tool calls are not authenticated.")
             .contains("boot-mcp-doctor.security.allow-unauthenticated=true: anyone who can reach the MCP endpoint")
-            .containsPattern("MCP client connected: demo-tests 1\\.0\\.0 \\(protocol [0-9-]+, session [0-9a-f-]{8}, "
+            .containsPattern("MCP client connected: " + CLIENT + " \\(protocol [0-9-]+, session [0-9a-f-]{8}, "
                     + "not authenticated, from [^)]+\\)");
     }
 
     @Test
+    void registersReadOnlyTools() {
+        assertThat(toolNames(this.client)).containsExactly("get_environment", "get_health", "get_loggers",
+                "get_metric", "get_slow_endpoints", "list_metrics");
+    }
+
+    @Test
     void getHealthReportsInventoryDown() {
-        assertThat(call("get_health", Map.of())).contains("\"status\":\"DOWN\"")
+        assertThat(call(this.client, "get_health", Map.of())).contains("\"status\":\"DOWN\"")
             .contains("inventory (DOWN)")
             .contains("Connection refused");
     }
@@ -78,44 +59,69 @@ class DemoApplicationTests {
     @Test
     void getSlowEndpointsRanksCheckoutFirst() throws Exception {
         HttpClient http = HttpClient.newHttpClient();
-        http.send(HttpRequest.newBuilder(URI.create(baseUrl() + "/orders")).build(),
-                HttpResponse.BodyHandlers.discarding());
-        http.send(HttpRequest.newBuilder(URI.create(baseUrl() + "/checkout"))
-            .POST(HttpRequest.BodyPublishers.noBody())
+        http.send(HttpRequest.newBuilder(URI.create(url("/orders"))).build(), HttpResponse.BodyHandlers.discarding());
+        http.send(HttpRequest.newBuilder(URI.create(url("/checkout"))).POST(HttpRequest.BodyPublishers.noBody())
             .build(), HttpResponse.BodyHandlers.discarding());
 
-        assertThat(call("get_slow_endpoints", Map.of())).contains("Slowest of 2 endpoints: POST /checkout")
+        String report = call(this.client, "get_slow_endpoints", Map.of());
+        assertThat(report).contains("Slowest of 2 endpoints: POST /checkout")
             .contains("\"uri\":\"/orders\"")
             .doesNotContain("/mcp")
             .doesNotContain("UNKNOWN");
+        assertThat(call(this.client, "get_slow_endpoints", Map.of("limit", 1))).contains("\"uri\":\"/checkout\"")
+            .doesNotContain("\"uri\":\"/orders\"");
     }
 
     @Test
     void getEnvironmentShowsWhereAPropertyIsSet() {
-        assertThat(call("get_environment", Map.of("prefix", "boot-mcp-doctor")))
+        assertThat(call(this.client, "get_environment", Map.of("prefix", "boot-mcp-doctor")))
             .contains("\"name\":\"boot-mcp-doctor.enabled\",\"value\":true")
             .contains("class path resource [application.yml] - ");
     }
 
     @Test
+    void getEnvironmentWithoutAPrefixOnlyReturnsConfigFiles() {
+        String report = call(this.client, "get_environment", Map.of());
+        assertThat(report).contains("properties are set in the application's config files")
+            .contains("\"name\":\"spring.application.name\",\"value\":\"order-service\"")
+            .contains("\"name\":\"demo.checkout.delay\",\"value\":\"100ms\"")
+            .doesNotContain("demo.request-id-header");
+        assertThat(call(this.client, "get_environment", Map.of("prefix", "demo.request-id-header")))
+            .contains("\"name\":\"demo.request-id-header\",\"value\":\"X-Request-Id\"");
+    }
+
+    @Test
+    void listMetricsFiltersByPrefix() {
+        List<String> names = JsonPath.read(call(this.client, "list_metrics", Map.of("prefix", "jvm.memory")),
+                "$.names");
+        assertThat(names).isNotEmpty().allMatch((name) -> name.startsWith("jvm.memory")).contains("jvm.memory.used");
+    }
+
+    @Test
     void getMetricReadsJvmMemory() {
-        assertThat(call("get_metric", Map.of("name", "jvm.memory.used", "tags", List.of("area:heap"))))
+        assertThat(call(this.client, "get_metric", Map.of("name", "jvm.memory.used", "tags", List.of("area:heap"))))
             .contains("\"found\":true")
             .contains("\"unit\":\"MB\"");
     }
 
     @Test
-    void getLoggersReturnsRoot() {
-        assertThat(call("get_loggers", Map.of())).contains("\"name\":\"ROOT\"");
+    void getMetricSuggestsNamesForATypo() {
+        String report = call(this.client, "get_metric", Map.of("name", "jvm.memory.usd"));
+        assertThat(report).contains("\"found\":false").contains("No metric named 'jvm.memory.usd'.");
+        assertThat(JsonPath.<List<String>>read(report, "$.suggestions")).contains("jvm.memory.used");
     }
 
-    private String call(String tool, Map<String, Object> arguments) {
-        CallToolResult result = this.client.callTool(CallToolRequest.builder(tool).arguments(arguments).build());
-        assertThat(result.isError()).as(tool + " error").isNotEqualTo(Boolean.TRUE);
-        return ((TextContent) result.content().get(0)).text();
+    @Test
+    void getMetricRejectsMalformedTags() {
+        assertThat(call(this.client, "get_metric", Map.of("name", "jvm.memory.used", "tags", List.of("heap"))))
+            .contains("Tags must be written as KEY:VALUE");
     }
 
-    private String baseUrl() {
-        return "http://localhost:" + this.port;
+    @Test
+    void getLoggersReturnsRootAndFiltersByPrefix() {
+        assertThat(call(this.client, "get_loggers", Map.of())).contains("\"name\":\"ROOT\"");
+        String report = call(this.client, "get_loggers", Map.of("prefix", "com.nhparikh.repo.bootmcpdoctor"));
+        assertThat(JsonPath.<List<String>>read(report, "$.loggers[*].name"))
+            .allMatch((name) -> name.startsWith("com.nhparikh.repo.bootmcpdoctor"));
     }
 }

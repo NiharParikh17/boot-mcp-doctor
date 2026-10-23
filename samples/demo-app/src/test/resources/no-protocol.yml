@@ -1,0 +1,12 @@
+# The demo's configuration without spring.ai.mcp.server.protocol, for ProtocolNotSetTests.
+spring:
+  ai:
+    mcp:
+      server:
+        annotation-scanner:
+          enabled: false
+
+boot-mcp-doctor:
+  enabled: true
+  security:
+    allow-unauthenticated: true
