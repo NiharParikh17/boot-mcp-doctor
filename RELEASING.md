@@ -10,11 +10,11 @@ Publishing a GitHub release tagged `vX.Y.Z` runs the [release workflow](.github/
 
 2. **Publishing token.** In the portal, open *View Account* → *Generate User Token*. Keep the token username and password for step 4.
 
-3. **Signing key.** Create a key that is only used for releases, and publish its public half so Maven Central can verify signatures:
+3. **Signing key.** Create an RSA 4096 key that is only used for releases, separate from the key you sign commits with, and publish its public half so Maven Central can verify signatures:
 
    ```bash
-   gpg --quick-gen-key "Nihar Parikh <nihar17999@gmail.com>" ed25519 sign 3y
-   gpg --list-secret-keys --keyid-format long
+   gpg --quick-gen-key "Nihar Parikh (Maven Central releases) <nihar17999@gmail.com>" rsa4096 sign 3y
+   gpg --list-secret-keys --keyid-format long "Maven Central releases"
    gpg --keyserver keyserver.ubuntu.com --send-keys <KEY_ID>
    ```
 
