@@ -90,6 +90,8 @@
                             <goal>check</goal>
                         </goals>
                         <configuration>
+                            <!-- Without tests there is no fresh coverage data, only whatever an earlier run left. -->
+                            <skip>${skipTests}</skip>
                             <rules>
                                 <rule>
                                     <element>BUNDLE</element>
