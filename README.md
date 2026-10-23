@@ -141,6 +141,8 @@ Run the sample app, which has a deliberately slow `/checkout` endpoint and a fai
 
 Found a bug, have an idea for a tool, or stuck on setup? [Open an issue](https://github.com/NiharParikh17/boot-mcp-doctor/issues/new/choose). Please report security problems privately, as described in [SECURITY.md](SECURITY.md).
 
+Contributions are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) covers the development setup, how to add a tool, and what a pull request needs.
+
 ## License
 
 [Apache License 2.0](LICENSE)
