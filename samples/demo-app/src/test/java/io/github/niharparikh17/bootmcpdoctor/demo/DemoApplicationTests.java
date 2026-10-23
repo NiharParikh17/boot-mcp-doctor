@@ -92,7 +92,7 @@ class DemoApplicationTests {
     }
 
     private String call(String tool, Map<String, Object> arguments) {
-        CallToolResult result = this.client.callTool(new CallToolRequest(tool, arguments));
+        CallToolResult result = this.client.callTool(CallToolRequest.builder(tool).arguments(arguments).build());
         assertThat(result.isError()).as(tool + " error").isNotEqualTo(Boolean.TRUE);
         return ((TextContent) result.content().get(0)).text();
     }

@@ -186,7 +186,7 @@ class BootMcpDoctorAutoConfigurationTests {
                     .findFirst()
                     .orElseThrow();
                 CallToolResult result = getHealth.callHandler()
-                    .apply(null, new CallToolRequest("get_health", Map.of()));
+                    .apply(null, CallToolRequest.builder("get_health").arguments(Map.of()).build());
                 assertThat(result.isError()).isNotEqualTo(Boolean.TRUE);
                 assertThat(((TextContent) result.content().get(0)).text()).contains("\"status\":\"UP\"")
                     .contains("\"name\":\"db\"");
