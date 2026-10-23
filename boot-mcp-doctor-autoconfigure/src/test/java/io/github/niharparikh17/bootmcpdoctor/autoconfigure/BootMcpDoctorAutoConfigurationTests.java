@@ -10,6 +10,7 @@ import io.modelcontextprotocol.spec.McpSchema.CallToolRequest;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
 import io.modelcontextprotocol.spec.McpSchema.TextContent;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import org.springframework.ai.mcp.annotation.McpTool;
 import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
@@ -23,9 +24,12 @@ import org.springframework.boot.micrometer.metrics.actuate.endpoint.MetricsEndpo
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.assertj.AssertableApplicationContext;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@ExtendWith(OutputCaptureExtension.class)
 class BootMcpDoctorAutoConfigurationTests {
 
     private static final List<String> READ_TOOLS = List.of("get_environment", "get_health", "get_loggers",
@@ -126,6 +130,22 @@ class BootMcpDoctorAutoConfigurationTests {
     }
 
     @Test
+    void warnsOnceAboutToolNamesThatWillNotBeRegistered(CapturedOutput output) {
+        this.enabled.withPropertyValues("boot-mcp-doctor.tools.include=get_health,get_everything").run((context) -> {
+            assertThat(context).hasNotFailed();
+            assertThat(output).containsOnlyOnce("will not be registered: [get_everything]");
+        });
+    }
+
+    @Test
+    void skipsTheAnnotationConverterWhenNoToolCanBeRegistered(CapturedOutput output) {
+        this.enabled.withPropertyValues("management.endpoints.access.max-permitted=none").run((context) -> {
+            assertThat(toolNames(context)).isEmpty();
+            assertThat(output).doesNotContain("No tool methods found");
+        });
+    }
+
+    @Test
     void registersTheSameToolsForStatelessServers() {
         this.enabled.withPropertyValues("boot-mcp-doctor.tools.exclude=get_loggers").run((context) -> {
             @SuppressWarnings("unchecked")
@@ -186,7 +206,7 @@ class BootMcpDoctorAutoConfigurationTests {
                     .findFirst()
                     .orElseThrow();
                 CallToolResult result = getHealth.callHandler()
-                    .apply(null, new CallToolRequest("get_health", Map.of()));
+                    .apply(null, CallToolRequest.builder("get_health").arguments(Map.of()).build());
                 assertThat(result.isError()).isNotEqualTo(Boolean.TRUE);
                 assertThat(((TextContent) result.content().get(0)).text()).contains("\"status\":\"UP\"")
                     .contains("\"name\":\"db\"");

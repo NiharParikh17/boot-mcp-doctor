@@ -83,6 +83,8 @@ Without `protocol: STREAMABLE`, Spring AI 2.0 serves the older SSE transport on 
 
 The tools read the application in-process. You do **not** need to expose the Actuator `metrics`, `env` or `loggers` endpoints over HTTP.
 
+boot-mcp-doctor registers its tools without Spring AI's annotation scanner. If your application has no `@McpTool` beans of its own, you can set `spring.ai.mcp.server.annotation-scanner.enabled=false` to skip the scanner and the startup warnings it logs when it finds nothing.
+
 ## Tools
 
 | Tool | Inputs | Returns |

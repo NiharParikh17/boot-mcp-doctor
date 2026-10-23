@@ -58,14 +58,13 @@ public class BootMcpDoctorAutoConfiguration {
 
     @Bean
     List<McpServerFeatures.SyncToolSpecification> bootMcpDoctorToolSpecifications(ToolSelector selector) {
-        return selector.filter(SyncMcpAnnotationProviders.toolSpecifications(selector.toolObjects()),
-                (spec) -> spec.tool().name());
+        return selector.specifications(SyncMcpAnnotationProviders::toolSpecifications, (spec) -> spec.tool().name());
     }
 
     @Bean
     List<McpStatelessServerFeatures.SyncToolSpecification> bootMcpDoctorStatelessToolSpecifications(
             ToolSelector selector) {
-        return selector.filter(SyncMcpAnnotationProviders.statelessToolSpecifications(selector.toolObjects()),
+        return selector.specifications(SyncMcpAnnotationProviders::statelessToolSpecifications,
                 (spec) -> spec.tool().name());
     }
 
