@@ -53,9 +53,14 @@ jobs:
           allow-licenses: >-
             Apache-2.0, MIT, MIT-0, BSD-2-Clause, BSD-3-Clause, ISC, EPL-1.0, EPL-2.0,
             CC0-1.0, Unicode-3.0, Unicode-DFS-2016
-          # ANTLR's POMs only say "BSD", which tools sometimes read as BSD-4-Clause. The license they link to,
-          # antlr.org/license.html, is BSD-3-Clause. Both arrive through Spring AI's template module.
-          allow-dependencies-licenses: pkg:maven/org.antlr/ST4, pkg:maven/org.antlr/antlr-runtime
+          # Packages whose license data GitHub gets wrong:
+          # - ANTLR's POMs only say "BSD", which tools sometimes read as BSD-4-Clause. The license they link to,
+          #   antlr.org/license.html, is BSD-3-Clause. Both arrive through Spring AI's template module.
+          # - Logback is dual-licensed under EPL-2.0 or LGPL-2.1 (logback.qos.ch/license.html), but GitHub lists
+          #   "EPL-2.0 AND LGPL-2.1", as if both applied. EPL-2.0 is on the allow-list.
+          allow-dependencies-licenses: >-
+            pkg:maven/org.antlr/ST4, pkg:maven/org.antlr/antlr-runtime,
+            pkg:maven/ch.qos.logback/logback-classic, pkg:maven/ch.qos.logback/logback-core
           show-patched-versions: true
           retry-on-snapshot-warnings: true
           retry-on-snapshot-warnings-timeout: 300
