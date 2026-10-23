@@ -27,7 +27,7 @@ body:
       label: Versions
       description: boot-mcp-doctor, Spring Boot, Spring AI and Java versions, plus the MCP client you're using.
       placeholder: |
-        boot-mcp-doctor 0.1.0
+        boot-mcp-doctor 0.1.1
         Spring Boot 4.1.2
         Spring AI 2.0.2
         Java 21
