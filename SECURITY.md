@@ -8,7 +8,7 @@ Report them privately through GitHub instead: open the [Security tab](https://gi
 
 ## Supported versions
 
-Fixes go into the latest release. Until 0.1.0 is published, that means `main`.
+Fixes go into the latest release only. Upgrade to it to get security fixes.
 
 ## Dependencies
 
