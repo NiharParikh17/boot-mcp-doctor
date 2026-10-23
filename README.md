@@ -1,5 +1,8 @@
 # boot-mcp-doctor
 
+[![CI](https://github.com/NiharParikh17/boot-mcp-doctor/actions/workflows/ci.yml/badge.svg)](https://github.com/NiharParikh17/boot-mcp-doctor/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+
 A Spring Boot starter that turns your application into an [MCP](https://modelcontextprotocol.io) server for its own operations. Add one dependency and any MCP client can ask the *running* application about its health, metrics, slow endpoints, configuration and log levels, in-process, with no separate server and no copy-pasting Actuator JSON.
 
 > **Status:** early development. Not yet published to Maven Central.
@@ -131,6 +134,8 @@ Run the sample app, which has a deliberately slow `/checkout` endpoint and a fai
 ./mvnw install -DskipTests
 ./mvnw -pl samples/demo-app spring-boot:run
 ```
+
+`./mvnw verify` also checks that line coverage of the auto-configuration module stays at 85% or more; the HTML report is written to `boot-mcp-doctor-autoconfigure/target/site/jacoco/`. Releases are covered in [RELEASING.md](RELEASING.md).
 
 ## License
 
