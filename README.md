@@ -8,7 +8,7 @@ A Spring Boot starter that turns your application into an [MCP](https://modelcon
 
 > **Status:** early development. 0.1.0 is the first release, and the tools and settings may still change before 1.0.
 
-**Contents:** [Example](#example) · [How it works](#how-it-works) · [Quick start](#quick-start) · [Tools](#tools) · [Configuration](#configuration) · [Logs](#logs) · [Security](#security) · [Building from source](#building-from-source)
+**Contents:** [Example](#example) · [How it works](#how-it-works) · [Quick start](#quick-start) · [Tools](#tools) · [Configuration](#configuration) · [Logs](#logs) · [Security](#security) · [Building from source](#building-from-source) · [Full guide](docs/guide.md)
 
 Sections marked ▶ expand when you click them.
 
@@ -78,6 +78,8 @@ sequenceDiagram
 - Spring AI 2.0 (pulled in by the starter)
 
 ## Quick start
+
+The four steps below get you running. The [guide](docs/guide.md) covers everything else, including recipes for HTTP Basic and OAuth2 bearer tokens, client setup for VS Code and JetBrains IDEs, and troubleshooting.
 
 ### 1. Add the starter
 
@@ -311,6 +313,8 @@ The outputs below are real responses from the [sample app](#building-from-source
 | `boot-mcp-doctor.security.write-authority` | empty | Authority a caller needs for tools that change state, such as `ROLE_OPS_ADMIN`. Those tools are not registered until this is set. |
 | `boot-mcp-doctor.masking.additional-keys` | empty | Extra key patterns to mask, matched case-insensitively anywhere in the key. |
 | `boot-mcp-doctor.limits.max-items` | `50` | Maximum number of entries in any list or map a tool returns. |
+
+The [settings reference](docs/guide.md#settings-reference) in the guide explains each setting in detail: what it does, when to change it, an example, and when it doesn't apply.
 
 boot-mcp-doctor also follows Actuator's access settings:
 - `management.endpoint.<id>.access=none` (or `management.endpoints.access.default` / `max-permitted`) removes that endpoint's tools. The IDs are `health`, `metrics`, `env` and `loggers`.
