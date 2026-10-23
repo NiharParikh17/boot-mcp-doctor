@@ -177,6 +177,12 @@
         <!-- Builds, signs and uploads the Maven Central bundle. Used by the release workflow. -->
         <profile>
             <id>release</id>
+            <properties>
+                <!-- Overridden on the command line by the release workflow. -->
+                <central.autoPublish>false</central.autoPublish>
+                <central.waitUntil>validated</central.waitUntil>
+                <central.waitMaxTime>1800</central.waitMaxTime>
+            </properties>
             <build>
                 <plugins>
                     <plugin>
@@ -251,10 +257,11 @@
                         <extensions>true</extensions>
                         <configuration>
                             <publishingServerId>central</publishingServerId>
-                            <!-- Uploads and validates only. Publishing is a manual step on central.sonatype.com,
-                                 because a published release can never be removed. -->
-                            <autoPublish>false</autoPublish>
-                            <waitUntil>validated</waitUntil>
+                            <!-- By default this uploads and validates only, because a published release can never
+                                 be removed. The release workflow turns on publishing after it has been approved. -->
+                            <autoPublish>${central.autoPublish}</autoPublish>
+                            <waitUntil>${central.waitUntil}</waitUntil>
+                            <waitMaxTime>${central.waitMaxTime}</waitMaxTime>
                         </configuration>
                     </plugin>
                 </plugins>
