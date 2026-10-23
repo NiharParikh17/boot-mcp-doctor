@@ -8,6 +8,10 @@ spring:
         version: 0.1.0
         # Streamable HTTP on /mcp. Without this, Spring AI falls back to the older SSE transport on /sse.
         protocol: STREAMABLE
+        # This app has no @McpTool beans of its own, and boot-mcp-doctor registers its tools without the
+        # scanner. Turning it off skips the startup warnings it logs when it finds nothing.
+        annotation-scanner:
+          enabled: false
 
 boot-mcp-doctor:
   enabled: true
