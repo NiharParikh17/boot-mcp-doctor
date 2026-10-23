@@ -15,8 +15,12 @@ spring:
 
 boot-mcp-doctor:
   enabled: true
-  # Set to false to also register set_log_level.
+  # set_log_level also needs Spring Security and security.write-authority, which this demo doesn't have.
   read-only: true
+  security:
+    # The demo has no Spring Security, so it opts in to unauthenticated calls to the read tools.
+    # Only do this on a machine nobody else can reach.
+    allow-unauthenticated: true
 
 demo:
   checkout:
