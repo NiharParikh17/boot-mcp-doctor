@@ -58,7 +58,7 @@ Add the starter:
 
 ```xml
 <dependency>
-    <groupId>io.github.niharparikh17</groupId>
+    <groupId>com.nhparikh.repo</groupId>
     <artifactId>boot-mcp-doctor-spring-boot-starter</artifactId>
     <version>0.1.0-SNAPSHOT</version>
 </dependency>

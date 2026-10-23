@@ -1,12 +1,12 @@
 # Releasing
 
-Releases are published to Maven Central under the `io.github.niharparikh17` namespace.
+Releases are published to Maven Central under the `com.nhparikh.repo` namespace.
 
-Publishing a GitHub release tagged `vX.Y.Z` runs the [release workflow](.github/workflows/release.yml), which builds, tests, signs and uploads that version. Each module's CycloneDX SBOM goes to Maven Central with it, and the starter's SBOM is also attached to the GitHub release. The upload stops once Maven Central has validated it. The final publish is a manual click on central.sonatype.com, because a published version can never be changed or removed.
+The [release workflow](.github/workflows/release.yml) does the whole release from one click. It checks that the version is new and that CI passed, waits for your approval, then builds, tests, signs and uploads to Maven Central, publishes, and creates the `vX.Y.Z` tag and GitHub release. Each module's CycloneDX SBOM goes to Maven Central, and the starter's SBOM is attached to the GitHub release. The workflow never pushes commits: the version comes from `pom.xml`, so moving `main` to the next version is a normal pull request.
 
 ## One-time setup
 
-1. **Central Portal account.** Sign in at [central.sonatype.com](https://central.sonatype.com) with your GitHub account. The `io.github.niharparikh17` namespace is verified automatically for GitHub sign-ins; check it under *Namespaces*.
+1. **Central Portal account and namespace.** Sign in at [central.sonatype.com](https://central.sonatype.com) and add the `com.nhparikh.repo` namespace under *Namespaces*. Central verifies it through a DNS TXT record on `nhparikh.com`; the namespace must show as verified before anything can be published.
 
 2. **Publishing token.** In the portal, open *View Account* → *Generate User Token*. Keep the token username and password for step 4.
 
@@ -18,7 +18,11 @@ Publishing a GitHub release tagged `vX.Y.Z` runs the [release workflow](.github/
    gpg --keyserver keyserver.ubuntu.com --send-keys <KEY_ID>
    ```
 
-4. **GitHub environment and secrets.** Create an environment named `maven-central` under *Settings* → *Environments*. Adding yourself as a required reviewer makes every release wait for your approval. Then store the secrets in it; each `gh secret set` prompts for the value:
+4. **GitHub environment and secrets.** Create an environment named `maven-central` under *Settings* → *Environments*:
+   - **Required reviewers:** add yourself, so every release waits for your approval before anything is uploaded. Leave *Prevent self-review* off.
+   - **Deployment branches and tags:** *Selected branches and tags* → add a **Branch** rule for `main`, so only runs from `main` can use the secrets.
+
+   Then store the secrets in it; each `gh secret set` prompts for the value:
 
    ```bash
    gh secret set MAVEN_CENTRAL_USERNAME --env maven-central
@@ -29,20 +33,30 @@ Publishing a GitHub release tagged `vX.Y.Z` runs the [release workflow](.github/
 
 ## Releasing a version
 
-1. Check that CI is green on `main`.
-2. Create the release. The tag sets the version; the POMs on `main` keep their `-SNAPSHOT` version.
+1. Make sure `pom.xml` on `main` has the version you want, as `X.Y.Z-SNAPSHOT`, and that CI passed on it.
+2. Optionally, do a dry run first. It builds, tests and signs the bundle with the real key, but uploads nothing:
 
    ```bash
-   gh release create v0.1.0 --target main --title v0.1.0 --generate-notes
+   gh workflow run release.yml --repo NiharParikh17/boot-mcp-doctor -f dry_run=true
    ```
 
-3. Approve the `maven-central` deployment in the workflow run if you added a required reviewer, and wait for the run to finish.
-4. Open [Deployments](https://central.sonatype.com/publishing/deployments), check the files, and click **Publish**. The version appears on Maven Central shortly after.
-5. Move `main` to the next development version, for example `0.2.0-SNAPSHOT`:
+3. Release. From the browser: *Actions* → *Release* → *Run workflow*, leaving *version* empty and *publish* ticked. Or:
+
+   ```bash
+   gh workflow run release.yml --repo NiharParikh17/boot-mcp-doctor
+   ```
+
+4. Approve it. The run stops at the `maven-central` environment; open it and choose *Review deployments* → *Approve*. Publishing is the one step that can never be undone, so this is the moment to check the version and commit it shows.
+5. Wait for the run to finish. It waits until Maven Central has published the version, usually within 30 minutes, then creates the tag and GitHub release.
+6. In a pull request, move `main` to the next version and update the version in `README.md`:
 
    ```bash
    ./mvnw versions:set -DnewVersion=0.2.0-SNAPSHOT -DprocessAllModules -DgenerateBackupPoms=false
    ```
+
+To release a different version than `pom.xml` says, type it into *version*. To stop before publishing, untick *publish*: the upload stops once Central has validated it, and the GitHub release is created as a draft. Publish the deployment on [central.sonatype.com](https://central.sonatype.com/publishing/deployments), then publish the draft release.
+
+If a run fails before publishing, nothing is released; fix the problem and run it again. A version that reached Maven Central can never be replaced, so a fix after that is a new patch version.
 
 ## Checking a release locally
 
