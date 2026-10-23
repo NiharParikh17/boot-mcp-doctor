@@ -11,6 +11,7 @@ import com.nhparikh.repo.bootmcpdoctor.tools.LogLevelTools;
 import com.nhparikh.repo.bootmcpdoctor.tools.LoggerTools;
 import com.nhparikh.repo.bootmcpdoctor.tools.MetricsTools;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.modelcontextprotocol.json.McpJsonDefaults;
 import io.modelcontextprotocol.server.McpServerFeatures;
 import io.modelcontextprotocol.server.McpStatelessServerFeatures;
 
@@ -23,14 +24,17 @@ import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.health.actuate.endpoint.HealthEndpoint;
 import org.springframework.boot.logging.LoggerGroups;
 import org.springframework.boot.logging.LoggingSystem;
 import org.springframework.boot.micrometer.metrics.actuate.endpoint.MetricsEndpoint;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
  * Registers boot-mcp-doctor's MCP tools when Actuator and the Spring AI MCP server are on the classpath and
@@ -44,7 +48,8 @@ import org.springframework.core.env.Environment;
  * {@code boot-mcp-doctor.security.*}. Without it, no tools are registered unless
  * {@code boot-mcp-doctor.security.allow-unauthenticated=true}, and tools that change state never are.
  * <p>
- * Once the application is ready, it logs where the tools are served and who may call them.
+ * Once the application is ready, it logs where the tools are served and who may call them. In servlet
+ * applications, it also logs each MCP client that connects.
  */
 @AutoConfiguration
 @ConditionalOnClass(value = { Endpoint.class, McpTool.class }, name = "io.modelcontextprotocol.server.McpServer")
@@ -123,6 +128,24 @@ public class BootMcpDoctorAutoConfiguration {
         @Bean
         ToolAuthorizer bootMcpDoctorToolAuthorizer(BootMcpDoctorProperties properties) {
             return new SpringSecurityToolAuthorizer(properties.security());
+        }
+    }
+
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+    @ConditionalOnClass(OncePerRequestFilter.class)
+    static class ConnectionLogConfiguration {
+
+        @Bean
+        FilterRegistrationBean<ConnectionLogFilter> bootMcpDoctorConnectionLogFilter(Environment environment) {
+            McpEndpoints endpoints = new McpEndpoints(environment);
+            FilterRegistrationBean<ConnectionLogFilter> registration = new FilterRegistrationBean<>(
+                    new ConnectionLogFilter(McpJsonDefaults.getMapper()));
+            registration.setName("bootMcpDoctorConnectionLogFilter");
+            registration.addUrlPatterns(endpoints.inServlet(endpoints.streamableHttp()),
+                    endpoints.inServlet(endpoints.sseMessage()));
+            registration.setOrder(ConnectionLogFilter.ORDER);
+            return registration;
         }
     }
 
