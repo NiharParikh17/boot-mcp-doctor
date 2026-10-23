@@ -3,7 +3,6 @@ package io.github.niharparikh17.bootmcpdoctor.tools;
 import java.util.List;
 import java.util.Map;
 
-import io.github.niharparikh17.bootmcpdoctor.autoconfigure.BootMcpDoctorAutoConfiguration;
 import io.github.niharparikh17.bootmcpdoctor.model.ComponentHealth;
 import io.github.niharparikh17.bootmcpdoctor.model.HealthReport;
 import io.github.niharparikh17.bootmcpdoctor.safety.ResponseSanitizer;
@@ -18,6 +17,7 @@ import org.springframework.boot.health.contributor.CompositeHealthContributor;
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.boot.health.contributor.Status;
+import org.springframework.boot.test.context.assertj.AssertableApplicationContext;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -28,8 +28,7 @@ class HealthToolsTests {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
         .withConfiguration(AutoConfigurations.of(HealthContributorRegistryAutoConfiguration.class,
-                HealthEndpointAutoConfiguration.class, BootMcpDoctorAutoConfiguration.class))
-        .withPropertyValues("boot-mcp-doctor.enabled=true");
+                HealthEndpointAutoConfiguration.class));
 
     @Test
     void reportsUpWhenAllComponentsAreUp() {
@@ -37,7 +36,7 @@ class HealthToolsTests {
             .withBean("db", HealthIndicator.class, () -> indicator(Health.up().withDetail("database", "PostgreSQL")))
             .withBean("diskSpace", HealthIndicator.class, () -> indicator(Health.up()))
             .run((context) -> {
-                HealthReport report = context.getBean(HealthTools.class).getHealth();
+                HealthReport report = tools(context, 50).getHealth();
                 assertThat(report.status()).isEqualTo("UP");
                 assertThat(report.summary()).isEqualTo("UP: all 2 components are UP.");
                 assertThat(report.components()).extracting(ComponentHealth::name).containsExactly("db", "diskSpace");
@@ -57,7 +56,7 @@ class HealthToolsTests {
             .withBean("cache", HealthIndicator.class, () -> indicator(Health.outOfService()))
             .withBean("diskSpace", HealthIndicator.class, () -> indicator(Health.up().withDetail("free", 1024)))
             .run((context) -> {
-                HealthReport report = context.getBean(HealthTools.class).getHealth();
+                HealthReport report = tools(context, 50).getHealth();
                 assertThat(report.status()).isEqualTo("DOWN");
                 assertThat(report.summary())
                     .isEqualTo("DOWN: 2 of 3 components are not UP: db (DOWN), cache (OUT_OF_SERVICE).");
@@ -77,7 +76,7 @@ class HealthToolsTests {
             .withBean("legacy", HealthIndicator.class, () -> indicator(Health.unknown()))
             .withBean("payments", HealthIndicator.class, () -> indicator(Health.status(new Status("DEGRADED"))))
             .withBean("db", HealthIndicator.class, () -> indicator(Health.down()))
-            .run((context) -> assertThat(context.getBean(HealthTools.class).getHealth().components())
+            .run((context) -> assertThat(tools(context, 50).getHealth().components())
                 .extracting(ComponentHealth::name)
                 .containsExactly("db", "payments", "legacy", "disk"));
     }
@@ -89,7 +88,7 @@ class HealthToolsTests {
                     () -> CompositeHealthContributor.fromMap(Map.of("primary", indicator(Health.up()), "replica",
                             indicator(Health.down().withDetail("error", "Replication lag")))))
             .run((context) -> {
-                List<ComponentHealth> components = context.getBean(HealthTools.class).getHealth().components();
+                List<ComponentHealth> components = tools(context, 50).getHealth().components();
                 assertThat(components).extracting(ComponentHealth::name).containsExactly("db/replica", "db/primary");
                 assertThat(components.get(0).details()).containsEntry("error", "Replication lag");
             });
@@ -97,12 +96,11 @@ class HealthToolsTests {
 
     @Test
     void capsComponentsAtMaxItemsKeepingFailures() {
-        this.contextRunner.withPropertyValues("boot-mcp-doctor.limits.max-items=2")
-            .withBean("a", HealthIndicator.class, () -> indicator(Health.up()))
+        this.contextRunner.withBean("a", HealthIndicator.class, () -> indicator(Health.up()))
             .withBean("b", HealthIndicator.class, () -> indicator(Health.up()))
             .withBean("z", HealthIndicator.class, () -> indicator(Health.down()))
             .run((context) -> {
-                HealthReport report = context.getBean(HealthTools.class).getHealth();
+                HealthReport report = tools(context, 2).getHealth();
                 assertThat(report.components()).extracting(ComponentHealth::name).containsExactly("z", "a");
                 assertThat(report.omittedComponents()).isEqualTo(1);
                 assertThat(report.summary()).startsWith("DOWN: 1 of 3 components");
@@ -124,6 +122,11 @@ class HealthToolsTests {
         HealthReport report = new HealthTools(provider(endpoint), sanitizer()).getHealth();
         assertThat(report.status()).isNull();
         assertThat(report.summary()).isEqualTo("Health check failed: registry closed");
+    }
+
+    private static HealthTools tools(AssertableApplicationContext context, int maxItems) {
+        return new HealthTools(context.getBeanProvider(HealthEndpoint.class),
+                new ResponseSanitizer(List.of(), maxItems));
     }
 
     private static HealthIndicator indicator(Health.Builder health) {

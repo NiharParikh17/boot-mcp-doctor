@@ -68,10 +68,19 @@ public final class ResponseSanitizer {
             if (result.size() == this.maxItems) {
                 break;
             }
-            String key = entry.getKey();
-            result.put(key, isSensitive(key) ? MASK : sanitizeValue(entry.getValue()));
+            result.put(entry.getKey(), sanitize(entry.getKey(), entry.getValue()));
         }
         return result;
+    }
+
+    /**
+     * Masks a single value if its key is sensitive, otherwise sanitizes the value itself.
+     * @param key the property, detail or field name
+     * @param value the value to sanitize
+     * @return a value that is safe to return to a client
+     */
+    public Object sanitize(String key, Object value) {
+        return isSensitive(key) ? MASK : sanitizeValue(value);
     }
 
     /**

@@ -11,8 +11,12 @@ spring:
 
 boot-mcp-doctor:
   enabled: true
+  # Set to false to also register set_log_level.
+  read-only: true
 
 demo:
+  checkout:
+    delay: 2s
   inventory:
     # Set to true to make the inventory health check pass.
     available: false
