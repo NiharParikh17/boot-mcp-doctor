@@ -609,6 +609,7 @@ With Spring Security, in [`samples/secured-demo-app`](../samples/secured-demo-ap
 | A context path | [`SecuredContextPathTests`](../samples/secured-demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/secured/SecuredContextPathTests.java) |
 | `protocol: SSE` | [`SecuredSseTests`](../samples/secured-demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/secured/SecuredSseTests.java) |
 | `protocol: STATELESS` | [`SecuredStatelessTests`](../samples/secured-demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/secured/SecuredStatelessTests.java) |
+| Every class, field and method boot-mcp-doctor uses exists on this Spring Boot version, with every optional dependency present | [`LinkageTests`](../samples/secured-demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/secured/LinkageTests.java) |
 
 To run a sample yourself:
 
