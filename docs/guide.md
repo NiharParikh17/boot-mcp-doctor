@@ -1,6 +1,6 @@
 # boot-mcp-doctor guide
 
-This guide explains what boot-mcp-doctor does, when to use it, how to set it up for your application, and what every setting does. For the five-minute version, start with the [quick start](../README.md#quick-start). This guide covers version 0.1.1.
+This guide explains what boot-mcp-doctor does, when to use it, how to set it up for your application, and what every setting does. For the five-minute version, start with the [quick start](../README.md#quick-start). This guide covers version 0.1.1. For the Spring Boot and Spring AI versions it works with, see [Compatibility](compatibility.md); to upgrade from an earlier version, see the [migration guides](migrations/README.md).
 
 **Contents**
 

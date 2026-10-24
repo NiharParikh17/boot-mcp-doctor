@@ -70,6 +70,15 @@ jobs:
           echo "group=$group" >> "$GITHUB_OUTPUT"
           echo "Releasing $version from $GITHUB_SHA (pom.xml has $pom_version)."
 
+      - name: Check the migration guide
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if [ ! -f "docs/migrations/$VERSION.md" ]; then
+            echo "::error::docs/migrations/$VERSION.md is missing. Every release needs a migration guide, even one that says no migration is needed; start from docs/migrations/TEMPLATE.md."
+            exit 1
+          fi
+
       - name: Check the version is new
         env:
           VERSION: ${{ steps.version.outputs.version }}
@@ -162,8 +171,9 @@ jobs:
           if [ "$PUBLISH" != "true" ]; then
             draft=(--draft)
           fi
+          guide="https://github.com/$GITHUB_REPOSITORY/blob/v$VERSION/docs/migrations/$VERSION.md"
           gh release create "v$VERSION" "$sbom" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --title "v$VERSION" --generate-notes "${draft[@]}"
+            --title "v$VERSION" --notes "Upgrading? Read the [migration guide]($guide)." --generate-notes "${draft[@]}"
 
       - name: Summary
         run: |

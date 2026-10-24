@@ -21,6 +21,8 @@ You need Java 17 or later. CI builds on JDK 17, 21 and 25. Maven comes with the 
 
 `verify` compiles everything, runs the tests (including end-to-end tests that boot both sample applications in many configurations and call the tools through a real MCP client), and fails if line coverage of `boot-mcp-doctor-autoconfigure` drops below 85%. The coverage report is written to `boot-mcp-doctor-autoconfigure/target/site/jacoco/index.html`.
 
+CI also runs the samples on the oldest supported Spring Boot and Spring AI versions, against the library as it is published. Before a release, `scripts/compatibility.sh` does the same for every supported pair, for the [compatibility chart](docs/compatibility.md). Code may only use APIs that the oldest supported Spring Boot version has: `LinkageTests` in the secured sample fails on any reference that doesn't resolve.
+
 To try your change against the sample application:
 
 ```bash

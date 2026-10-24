@@ -33,7 +33,9 @@ The [release workflow](.github/workflows/release.yml) does the whole release fro
 
 ## Releasing a version
 
-1. Make sure `pom.xml` on `main` has the version you want, as `X.Y.Z-SNAPSHOT`, and that CI passed on it.
+1. Make sure `pom.xml` on `main` has the version you want, as `X.Y.Z-SNAPSHOT`, and that CI passed on it. `main` also needs, for that version:
+   - **A migration guide**, `docs/migrations/X.Y.Z.md`, written from [the template](docs/migrations/TEMPLATE.md) and listed in [the index](docs/migrations/README.md). Every release gets one, even when it only says that no migration is needed, and it must describe the release as it ships. The release workflow stops without it, and the GitHub release links to it.
+   - **The compatibility chart** in [docs/compatibility.md](docs/compatibility.md), updated with the Spring Boot and Spring AI versions the release was tested on, and what it can and cannot do on each. `scripts/compatibility.sh` runs both samples on every supported pair; `scripts/compatibility.sh 6` uses six workers.
 2. Optionally, do a dry run first. It builds, tests and signs the bundle with the real key, but uploads nothing:
 
    ```bash

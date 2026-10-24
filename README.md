@@ -77,6 +77,8 @@ sequenceDiagram
 - Spring Boot 4.1
 - Spring AI 2.0 (pulled in by the starter)
 
+The [compatibility chart](docs/compatibility.md) lists every Spring Boot and Spring AI version boot-mcp-doctor is tested with, and what works on each. To upgrade from an earlier boot-mcp-doctor version, see the [migration guides](docs/migrations/README.md).
+
 ## Quick start
 
 The four steps below get you running. The [guide](docs/guide.md) covers everything else, including recipes for HTTP Basic and OAuth2 bearer tokens, client setup for VS Code and JetBrains IDEs, and troubleshooting.
