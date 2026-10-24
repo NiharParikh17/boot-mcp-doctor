@@ -6,7 +6,7 @@
 
 A Spring Boot starter that turns your application into an [MCP](https://modelcontextprotocol.io) server for its own operations. Add one dependency and any MCP client can ask the *running* application about its health, metrics, slow endpoints, configuration and log levels, in-process, with no separate server and no copy-pasting Actuator JSON.
 
-> **Status:** early development. 0.1.0 is the first release, and the tools and settings may still change before 1.0.
+> **Status:** early development. 0.1.1 is the latest release, and the tools and settings may still change before 1.0.
 
 **Contents:** [Example](#example) · [How it works](#how-it-works) · [Quick start](#quick-start) · [Tools](#tools) · [Configuration](#configuration) · [Logs](#logs) · [Security](#security) · [Building from source](#building-from-source) · [Full guide](docs/guide.md)
 
@@ -90,7 +90,7 @@ The four steps below get you running. The [guide](docs/guide.md) covers everythi
 <dependency>
     <groupId>com.nhparikh.repo</groupId>
     <artifactId>boot-mcp-doctor-spring-boot-starter</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.1</version>
 </dependency>
 ```
 
@@ -101,7 +101,7 @@ The four steps below get you running. The [guide](docs/guide.md) covers everythi
 
 ```kotlin
 dependencies {
-    implementation("com.nhparikh.repo:boot-mcp-doctor-spring-boot-starter:0.1.0")
+    implementation("com.nhparikh.repo:boot-mcp-doctor-spring-boot-starter:0.1.1")
 }
 ```
 
@@ -112,7 +112,7 @@ dependencies {
 
 ```groovy
 dependencies {
-    implementation 'com.nhparikh.repo:boot-mcp-doctor-spring-boot-starter:0.1.0'
+    implementation 'com.nhparikh.repo:boot-mcp-doctor-spring-boot-starter:0.1.1'
 }
 ```
 
