@@ -6,12 +6,14 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import com.jayway.jsonpath.JsonPath;
 import io.modelcontextprotocol.client.McpSyncClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import org.springframework.boot.SpringBootVersion;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.system.CapturedOutput;
@@ -31,6 +33,15 @@ class DemoApplicationTests extends McpAppTest {
     @BeforeEach
     void connect() {
         this.client = connect("/mcp");
+    }
+
+    @Test
+    void logsThatItSupportsTheApplicationBeforeTheStartupLine(CapturedOutput output) {
+        String supported = "supports this application: Spring Boot " + SpringBootVersion.getVersion()
+                + " with Spring AI 2.0.";
+        assertThat(output).containsPattern("boot-mcp-doctor (\\S+ )?" + Pattern.quote(supported) + "\\d+\\.");
+        String log = output.toString();
+        assertThat(log.indexOf(supported)).isLessThan(log.indexOf("boot-mcp-doctor is running"));
     }
 
     @Test

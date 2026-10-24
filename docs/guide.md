@@ -1,6 +1,6 @@
 # boot-mcp-doctor guide
 
-This guide explains what boot-mcp-doctor does, when to use it, how to set it up for your application, and what every setting does. For the five-minute version, start with the [quick start](../README.md#quick-start). This guide covers version 0.1.1. For the Spring Boot and Spring AI versions it works with, see [Compatibility](compatibility.md); to upgrade from an earlier version, see the [migration guides](migrations/README.md).
+This guide explains what boot-mcp-doctor does, when to use it, how to set it up for your application, and what every setting does. For the five-minute version, start with the [quick start](../README.md#quick-start). This guide covers version 0.1.2. For the Spring Boot and Spring AI versions it works with, see [Compatibility](compatibility.md); to upgrade from an earlier version, see the [migration guides](migrations/README.md).
 
 **Contents**
 
@@ -474,7 +474,24 @@ If a client asks to sign in, or opens `/authorize` on your application, the clie
 
 ## Logs
 
-Since 0.1.1, boot-mcp-doctor logs one line when the application is ready and one line for each client that connects.
+Since 0.1.1, boot-mcp-doctor logs one line when the application is ready and one line for each client that connects. Since 0.1.2, it also logs whether it supports the application's versions, even when it is turned off.
+
+### Compatibility
+
+Once the application is ready, before the startup line, boot-mcp-doctor says whether it supports the application's Spring Boot and Spring AI versions, as listed in [Compatibility](compatibility.md):
+
+```text
+boot-mcp-doctor 0.1.2 supports this application: Spring Boot 4.1.2 with Spring AI 2.0.2.
+```
+
+| Line | Level | Meaning |
+|---|---|---|
+| `supports this application: ...` | INFO | The versions are supported and boot-mcp-doctor is on. |
+| `supports this application, ..., but is turned off. Set boot-mcp-doctor.enabled=true to turn it on.` | INFO | The versions are supported, but `boot-mcp-doctor.enabled` is not `true`. |
+| `does not support this application: it needs Spring Boot 4.1 with Spring AI 2.0, and this application has ...` | WARN | The versions are not supported. It ends with `It registered no tools.` when boot-mcp-doctor could not start, or `It started anyway, so some tools may not work.` when it did. |
+| `does not support this application: it needs ... on the classpath.` | WARN | Actuator, the MCP server or Spring AI's MCP annotations are missing, which only happens without the starter. |
+| `does not support this application, and is turned off: ...` | INFO | As above, while boot-mcp-doctor is off. |
+| `could not read this application's ... version, so it can't tell whether it supports it.` | INFO | The version is missing from the jar, as in some repackaged applications. |
 
 ### At startup
 
@@ -524,6 +541,7 @@ MCP client connected: Visual Studio Code 1.105.1 (protocol 2025-06-18, session b
 | Setting | Effect |
 |---|---|
 | `logging.level.com.nhparikh.repo.bootmcpdoctor.autoconfigure.ConnectionLogFilter: WARN` | No connection lines. |
+| `logging.level.com.nhparikh.repo.bootmcpdoctor.autoconfigure.CompatibilityLog: WARN` | No compatibility line, unless the versions are not supported. |
 | `logging.level.com.nhparikh.repo.bootmcpdoctor: WARN` | Only warnings from boot-mcp-doctor. |
 
 ## What each tool needs
@@ -548,7 +566,8 @@ Things worth knowing about individual tools:
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| No startup line at all | `boot-mcp-doctor.enabled` is not `true`, the version is older than 0.1.1, or boot-mcp-doctor's logging is set above `INFO`. | Set it in the active profile; check the version and logging levels. |
+| No startup line at all | `boot-mcp-doctor.enabled` is not `true`, the version is older than 0.1.1, or boot-mcp-doctor's logging is set above `INFO`. From 0.1.2, the compatibility line says which. | Set it in the active profile; check the version and logging levels. |
+| Startup warns `boot-mcp-doctor ... does not support this application` | The Spring Boot or Spring AI version is not supported, or something the starter brings is missing. | Use versions from [Compatibility](compatibility.md), and the starter. |
 | Startup warns `registered no tools because nothing authenticates callers` | No Spring Security. | Add Spring Security, or set `security.allow-unauthenticated: true` for local development. |
 | HTTP 404 from `/mcp`, sometimes with `No static resource mcp` | The transport is SSE because `protocol` is not set; the startup line says `(SSE)`. | `spring.ai.mcp.server.protocol: STREAMABLE`. |
 | Client asks to sign in, or opens `/authorize` on the application | The client got HTTP 401. | Send the token in a header; run the curl check. |

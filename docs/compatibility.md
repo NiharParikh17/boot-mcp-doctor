@@ -13,6 +13,8 @@ Which Spring Boot and Spring AI versions each boot-mcp-doctor release works with
 
 **Recommended:** the newest boot-mcp-doctor release, with the newest Spring Boot 4.1 and Spring AI 2.0 releases.
 
+At startup, boot-mcp-doctor 0.1.2 and later logs whether it supports the application's Spring Boot and Spring AI versions, even when it is turned off, and warns when it doesn't. The [guide](guide.md#compatibility) lists the lines.
+
 Every supported pair needs Java 17 or later: the jars are compiled for Java 17. boot-mcp-doctor also only works in Spring MVC (servlet) applications, with Spring AI's synchronous MCP server, `spring.ai.mcp.server.type=SYNC`, which is the default.
 
 ## What works on each version
