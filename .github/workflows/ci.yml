@@ -48,6 +48,38 @@ jobs:
           name: test-reports-jdk-${{ matrix.java }}
           path: '**/target/surefire-reports/'
 
+  # The starter asks for the oldest supported Spring Boot and Spring AI versions, so applications whose builds manage
+  # no newer ones get these. The build job tests the newest ones; docs/compatibility.md lists every tested pair.
+  oldest-supported:
+    name: Spring Boot 4.1.0 with Spring AI 2.0.0
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+
+      # Built and installed as it is published; only the samples run on the older versions.
+      - name: Install boot-mcp-doctor
+        run: ./mvnw -B -ntp install -DskipTests -pl boot-mcp-doctor-spring-boot-starter -am
+
+      - name: Test the samples
+        run: >-
+          ./mvnw -B -ntp verify -pl samples/demo-app,samples/secured-demo-app
+          -Dspring-boot.version=4.1.0 -Dspring-ai.version=2.0.0
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-reports-oldest-supported
+          path: '**/target/surefire-reports/'
+
   release-bundle:
     name: Check release bundle
     runs-on: ubuntu-latest

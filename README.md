@@ -77,6 +77,8 @@ sequenceDiagram
 - Spring Boot 4.1
 - Spring AI 2.0 (pulled in by the starter)
 
+The [compatibility chart](docs/compatibility.md) lists every Spring Boot and Spring AI version boot-mcp-doctor is tested with, and what works on each. To upgrade from an earlier boot-mcp-doctor version, see the [migration guides](docs/migrations/README.md).
+
 ## Quick start
 
 The four steps below get you running. The [guide](docs/guide.md) covers everything else, including recipes for HTTP Basic and OAuth2 bearer tokens, client setup for VS Code and JetBrains IDEs, and troubleshooting.
@@ -344,16 +346,18 @@ boot-mcp-doctor:
 
 ## Logs
 
-Once the application is ready, boot-mcp-doctor logs where its tools are served and who may call them. It also logs each MCP client that connects:
+Once the application is ready, boot-mcp-doctor logs whether it supports the application's versions, then where its tools are served and who may call them. It also logs each MCP client that connects:
 
 ```text
+INFO  c.n.r.b.a.CompatibilityLog        : boot-mcp-doctor 0.1.2 supports this application: Spring Boot 4.1.2 with Spring AI 2.0.2.
 INFO  c.n.r.b.autoconfigure.StartupLog  : boot-mcp-doctor is running at /api/xyz/mcp on port 8090 (Streamable HTTP) with 6 read-only tools: get_environment, get_health, get_loggers, get_metric, get_slow_endpoints, list_metrics. Tool calls need a caller authenticated by Spring Security.
 INFO  c.n.r.b.a.ConnectionLogFilter     : MCP client connected: Visual Studio Code 1.105.1 (protocol 2025-06-18, session bf022b6e, user ops, from 10.0.0.7)
 ```
 
+- **Compatibility.** Logged even when boot-mcp-doctor is turned off, and as a warning when the application's Spring Boot or Spring AI version is not supported; see [Compatibility](docs/compatibility.md).
 - **Startup.** The path includes the context path and the DispatcherServlet path, so it is what your MCP client needs after `http://<host>:<port>`. Instead of that line, a warning is logged when no MCP server serves the tools or no tools are registered. A second warning follows it when `security.allow-unauthenticated=true` lets callers in without authenticating.
 - **Connections.** A client is logged when its `initialize` request succeeds, with the name and version it reports, the protocol version, the start of its session ID, the user Spring Security authenticated and its address. Requests that Spring Security turns away are not logged. Client names and versions are sent by the client, so line breaks and other control characters are replaced and long values are shortened. Connections are logged in servlet (Spring MVC) applications.
-- **Turning them off.** Set `logging.level.com.nhparikh.repo.bootmcpdoctor.autoconfigure.ConnectionLogFilter=WARN` to stop the connection lines, or `logging.level.com.nhparikh.repo.bootmcpdoctor=WARN` to keep only warnings.
+- **Turning them off.** Set `logging.level.com.nhparikh.repo.bootmcpdoctor.autoconfigure.ConnectionLogFilter=WARN` to stop the connection lines, `logging.level.com.nhparikh.repo.bootmcpdoctor.autoconfigure.CompatibilityLog=WARN` to log the compatibility line only when the versions are not supported, or `logging.level.com.nhparikh.repo.bootmcpdoctor=WARN` to keep only warnings.
 
 ## Security
 

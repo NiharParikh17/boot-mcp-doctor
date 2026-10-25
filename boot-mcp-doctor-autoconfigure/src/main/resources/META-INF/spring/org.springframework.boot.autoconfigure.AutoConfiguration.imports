@@ -1,1 +1,2 @@
 com.nhparikh.repo.bootmcpdoctor.autoconfigure.BootMcpDoctorAutoConfiguration
+com.nhparikh.repo.bootmcpdoctor.autoconfigure.CompatibilityLogAutoConfiguration
