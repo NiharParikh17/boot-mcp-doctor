@@ -24,8 +24,7 @@ class SpringSecurityToolAuthorizer implements ToolAuthorizer {
     @Override
     public String denyReason(String tool, boolean write) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        boolean authenticated = authentication != null && authentication.isAuthenticated()
-                && !this.trustResolver.isAnonymous(authentication);
+        boolean authenticated = isAuthenticated(authentication);
         if (write) {
             if (!this.security.requiresWriteAuthority()) {
                 // Fail closed: write tools are only registered once a write authority is configured.
@@ -40,6 +39,17 @@ class SpringSecurityToolAuthorizer implements ToolAuthorizer {
             return tool + " requires an authenticated caller.";
         }
         return null;
+    }
+
+    @Override
+    public String caller() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return isAuthenticated(authentication) ? authentication.getName() : null;
+    }
+
+    private boolean isAuthenticated(Authentication authentication) {
+        return authentication != null && authentication.isAuthenticated()
+                && !this.trustResolver.isAnonymous(authentication);
     }
 
     private static String check(String tool, boolean authenticated, Authentication authentication,

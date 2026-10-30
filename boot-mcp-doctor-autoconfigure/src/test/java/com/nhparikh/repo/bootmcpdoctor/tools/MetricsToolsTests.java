@@ -24,6 +24,8 @@ import static org.mockito.Mockito.mock;
 
 class MetricsToolsTests {
 
+    private static final String FAILED = "failed with IllegalStateException. The application's log has the details.";
+
     private final SimpleMeterRegistry registry = new SimpleMeterRegistry();
 
     private final MetricsTools tools = tools(this.registry, 50);
@@ -152,6 +154,20 @@ class MetricsToolsTests {
             .tags("method", method, "uri", uri, "outcome", outcome)
             .register(this.registry)
             .record(Duration.ofMillis(millis));
+    }
+
+    @Test
+    void reportsFailuresWithoutTheirMessage() {
+        IllegalStateException failure = new IllegalStateException("registry at jdbc:h2:mem:secret");
+        @SuppressWarnings("unchecked")
+        ObjectProvider<MeterRegistry> provider = mock(ObjectProvider.class);
+        given(provider.getIfAvailable()).willThrow(failure);
+        MetricsTools failing = new MetricsTools(provider, new ResponseSanitizer(List.of(), 50), List.of());
+        ToolCalls.start();
+        assertThat(failing.listMetrics(null).summary()).isEqualTo("list_metrics " + FAILED);
+        assertThat(failing.getMetric("jvm.memory.used", null).summary()).isEqualTo("get_metric " + FAILED);
+        assertThat(failing.getSlowEndpoints(null).summary()).isEqualTo("get_slow_endpoints " + FAILED);
+        assertThat(ToolCalls.finish().failure()).isSameAs(failure);
     }
 
     @SuppressWarnings("unchecked")

@@ -69,24 +69,20 @@ public class HealthTools {
             annotations = @McpAnnotations(title = "Get health", readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
     public HealthReport getHealth() {
-        HealthEndpoint endpoint = this.healthEndpoint.get();
-        if (endpoint == null) {
-            return HealthReport.unavailable(UNAVAILABLE);
-        }
-        HealthDescriptor root;
-        try {
-            root = endpoint.health();
-        }
-        catch (RuntimeException ex) {
-            return HealthReport.unavailable("Health check failed: " + ex.getMessage());
-        }
-        List<ComponentHealth> components = new ArrayList<>();
-        collect(null, root, components);
-        components.sort(BY_SEVERITY);
-        List<ComponentHealth> limited = this.sanitizer.limit(components);
-        String status = root.getStatus().getCode();
-        return new HealthReport(status, summarize(status, components), limited,
-                components.size() - limited.size());
+        return ToolCalls.run("get_health", () -> {
+            HealthEndpoint endpoint = this.healthEndpoint.get();
+            if (endpoint == null) {
+                return HealthReport.unavailable(UNAVAILABLE);
+            }
+            HealthDescriptor root = endpoint.health();
+            List<ComponentHealth> components = new ArrayList<>();
+            collect(null, root, components);
+            components.sort(BY_SEVERITY);
+            List<ComponentHealth> limited = this.sanitizer.limit(components);
+            String status = root.getStatus().getCode();
+            return new HealthReport(status, summarize(status, components), limited,
+                    components.size() - limited.size());
+        }, (failure) -> HealthReport.unavailable(failure));
     }
 
     private void collect(String path, HealthDescriptor descriptor, List<ComponentHealth> out) {

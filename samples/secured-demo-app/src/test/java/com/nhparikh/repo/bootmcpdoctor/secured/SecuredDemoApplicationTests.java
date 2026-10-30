@@ -1,6 +1,7 @@
 package com.nhparikh.repo.bootmcpdoctor.secured;
 
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import io.modelcontextprotocol.client.McpSyncClient;
 import org.junit.jupiter.api.Test;
@@ -52,7 +53,7 @@ class SecuredDemoApplicationTests extends McpAppTest {
     }
 
     @Test
-    void onlyAdminCanChangeLogLevels() {
+    void onlyAdminCanChangeLogLevels(CapturedOutput output) {
         Map<String, Object> debug = Map.of("logger", "com.nhparikh.repo.bootmcpdoctor.secured", "level", "DEBUG");
         assertThat(refused(connect("/mcp", basic("ops")), "set_log_level", debug))
             .isEqualTo("Not authorized: set_log_level requires the ROLE_OPS_ADMIN authority.");
@@ -64,5 +65,14 @@ class SecuredDemoApplicationTests extends McpAppTest {
         assertThat(call(admin, "set_log_level", Map.of("logger", "com.nhparikh.repo.bootmcpdoctor.secured", "level",
                 "RESET")))
             .contains("\"newLevel\":null");
+
+        String client = " via " + Pattern.quote(CLIENT) + ": ";
+        String logger = Pattern.quote("com.nhparikh.repo.bootmcpdoctor.secured");
+        assertThat(output)
+            .containsPattern("WARN .*MCP tool call: set_log_level\\(.*\\) by ops" + client
+                    + "refused: set_log_level requires the ROLE_OPS_ADMIN authority\\.")
+            .containsPattern("INFO .*MCP tool call: set_log_level\\(.*level=DEBUG.*\\) by admin" + client
+                    + "ok in \\d+ ms\\. Set " + logger + " from inherited to DEBUG")
+            .containsPattern("by admin" + client + "ok in \\d+ ms\\. Set " + logger + " from DEBUG to inherited");
     }
 }

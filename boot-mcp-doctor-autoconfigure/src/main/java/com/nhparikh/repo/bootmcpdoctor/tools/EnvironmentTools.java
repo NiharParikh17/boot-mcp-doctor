@@ -68,38 +68,41 @@ public class EnvironmentTools {
                     idempotentHint = true, openWorldHint = false))
     public EnvironmentReport getEnvironment(@McpToolParam(required = false,
             description = "Property name prefix, for example spring.datasource or server") String prefix) {
-        ConfigurationPropertyName prefixName = (prefix != null && !prefix.isBlank())
-                ? ConfigurationPropertyName.adapt(prefix.trim(), '.') : null;
-        List<ConfigurationPropertySource> sources = new ArrayList<>();
-        ConfigurationPropertySources.get(this.environment).forEach(sources::add);
+        return ToolCalls.run("get_environment", () -> {
+            ConfigurationPropertyName prefixName = (prefix != null && !prefix.isBlank())
+                    ? ConfigurationPropertyName.adapt(prefix.trim(), '.') : null;
+            List<ConfigurationPropertySource> sources = new ArrayList<>();
+            ConfigurationPropertySources.get(this.environment).forEach(sources::add);
 
-        Set<ConfigurationPropertyName> names = new TreeSet<>(Comparator.comparing(ConfigurationPropertyName::toString));
-        for (ConfigurationPropertySource source : sources) {
-            if (!(source instanceof IterableConfigurationPropertySource iterable)) {
-                continue;
-            }
-            if (prefixName == null) {
-                if (isConfigFile(source)) {
-                    iterable.stream().forEach(names::add);
+            Set<ConfigurationPropertyName> names = new TreeSet<>(
+                    Comparator.comparing(ConfigurationPropertyName::toString));
+            for (ConfigurationPropertySource source : sources) {
+                if (!(source instanceof IterableConfigurationPropertySource iterable)) {
+                    continue;
+                }
+                if (prefixName == null) {
+                    if (isConfigFile(source)) {
+                        iterable.stream().forEach(names::add);
+                    }
+                }
+                else {
+                    iterable.stream()
+                        .filter((name) -> prefixName.equals(name) || prefixName.isAncestorOf(name))
+                        .forEach(names::add);
                 }
             }
-            else {
-                iterable.stream()
-                    .filter((name) -> prefixName.equals(name) || prefixName.isAncestorOf(name))
-                    .forEach(names::add);
-            }
-        }
 
-        List<PropertyValue> properties = new ArrayList<>();
-        for (ConfigurationPropertyName name : names) {
-            PropertyValue value = effectiveValue(name, sources);
-            if (value != null) {
-                properties.add(value);
+            List<PropertyValue> properties = new ArrayList<>();
+            for (ConfigurationPropertyName name : names) {
+                PropertyValue value = effectiveValue(name, sources);
+                if (value != null) {
+                    properties.add(value);
+                }
             }
-        }
-        List<PropertyValue> limited = this.sanitizer.limit(properties);
-        return new EnvironmentReport(summarize(prefix, prefixName, properties.size()),
-                List.of(this.environment.getActiveProfiles()), limited, properties.size() - limited.size());
+            List<PropertyValue> limited = this.sanitizer.limit(properties);
+            return new EnvironmentReport(summarize(prefix, prefixName, properties.size()),
+                    List.of(this.environment.getActiveProfiles()), limited, properties.size() - limited.size());
+        }, (failure) -> new EnvironmentReport(failure, List.of(), List.of(), 0));
     }
 
     // The first source that has the property wins, as it does when Spring binds configuration.

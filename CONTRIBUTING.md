@@ -55,11 +55,12 @@ boot-mcp-doctor is read-only and safe by default. Every tool needs to keep it th
 
 - **Read in-process.** Use the application's own beans, such as the meter registry, environment or logging system, through an `ObjectProvider`. Never call the application over HTTP.
 - **Degrade gracefully.** If the data source is missing, return a clear message (for example, "Metrics not available. Is micrometer on the classpath?") rather than throwing.
+- **Run the work through `ToolCalls.run`.** Pass the tool's name, its work, and how to build its report from a failure message. An unexpected exception then reaches the caller as `<tool> failed with <exception>`, without its own message, and the call's log line gets the stack trace. A tool that changes state also calls `ToolCalls.note` with what it changed, which the log line includes.
 - **Pass every response through `ResponseSanitizer`.** Mask values whose keys look sensitive, and cap every list and map at `limits.max-items`.
 - **Return small, summarized records.** Add a record to `model`, sort the most important entries first (failures, slowest, largest), include units such as `ms` or `MB`, and add a one-line `summary`. Never return raw Actuator payloads or full dumps.
 - **Write the description for whoever calls the tool.** Say what the tool does, when to use it and how to read its output. Set the `@McpTool` annotations: `readOnlyHint = true` for read tools.
 - **Register it through a `ToolGroup`.** Add a `ToolGroup` bean in `BootMcpDoctorAutoConfiguration` with the matching Actuator endpoint ID, so Actuator access settings apply. Guard it with `@ConditionalOnClass` if it needs an optional module. Tool classes are not beans themselves.
-- **Treat anything that changes state as a write tool.** Mark the group with `write = true` and set `readOnlyHint = false`. Write tools are only registered when `boot-mcp-doctor.read-only=false`, Spring Security is present, `boot-mcp-doctor.security.write-authority` is set and the endpoint's Actuator access allows it, and every call needs that authority. `ToolGuard` checks each call, so a new tool needs no security code of its own.
+- **Treat anything that changes state as a write tool.** Mark the group with `write = true` and set `readOnlyHint = false`. Write tools are only registered when `boot-mcp-doctor.read-only=false`, Spring Security is present, `boot-mcp-doctor.security.write-authority` is set and the endpoint's Actuator access allows it, and every call needs that authority. `ToolGuard` checks and logs each call, so a new tool needs no security or logging code of its own.
 - **Document it.** Add the tool to the Tools table in the README, and any new property to the Configuration table and to the [guide](docs/guide.md#settings-reference).
 
 ## Tests

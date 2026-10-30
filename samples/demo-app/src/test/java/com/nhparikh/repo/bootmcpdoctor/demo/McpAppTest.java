@@ -113,6 +113,19 @@ abstract class McpAppTest {
     }
 
     /**
+     * Calls a tool that is expected to fail.
+     * @param client the client
+     * @param tool the tool name
+     * @param arguments the tool's arguments
+     * @return the error message the tool returned
+     */
+    static String failed(McpSyncClient client, String tool, Map<String, Object> arguments) {
+        CallToolResult result = client.callTool(CallToolRequest.builder(tool).arguments(arguments).build());
+        assertThat(result.isError()).as(tool + " error").isTrue();
+        return ((TextContent) result.content().get(0)).text();
+    }
+
+    /**
      * Sends a raw HTTP POST, like the curl check in the guide.
      * @param path the request path
      * @param body the request body

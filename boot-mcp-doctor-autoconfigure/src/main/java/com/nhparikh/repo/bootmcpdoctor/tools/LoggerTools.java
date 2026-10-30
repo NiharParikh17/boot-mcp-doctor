@@ -68,27 +68,29 @@ public class LoggerTools {
                     idempotentHint = true, openWorldHint = false))
     public LoggersReport getLoggers(@McpToolParam(required = false,
             description = "Logger name prefix, for example com.example") String prefix) {
-        LoggersEndpoint endpoint = endpoint(this.loggingSystem, this.loggerGroups);
-        if (endpoint == null) {
-            return new LoggersReport(UNAVAILABLE, List.of(), List.of(), List.of(), 0);
-        }
-        LoggersDescriptor descriptor = endpoint.loggers();
-        boolean all = prefix == null || prefix.isBlank();
-        List<LoggerLevel> loggers = descriptor.getLoggers()
-            .entrySet()
-            .stream()
-            .map((entry) -> loggerLevel(entry.getKey(), entry.getValue()))
-            .filter((logger) -> all ? ROOT.equals(logger.name()) || logger.configuredLevel() != null
-                    : logger.name().startsWith(prefix))
-            .sorted(ROOT_FIRST)
-            .toList();
-        List<LoggerLevel> limited = this.sanitizer.limit(loggers);
-        List<LoggerGroupLevel> groups = all ? groups(descriptor.getGroups()) : List.of();
-        List<String> levels = descriptor.getLevels().stream().map(LogLevel::name).toList();
-        String summary = all
-                ? loggers.size() + " loggers are ROOT or have a configured level; " + groups.size() + " groups."
-                : loggers.size() + " loggers start with '" + prefix + "'.";
-        return new LoggersReport(summary, levels, limited, groups, loggers.size() - limited.size());
+        return ToolCalls.run("get_loggers", () -> {
+            LoggersEndpoint endpoint = endpoint(this.loggingSystem, this.loggerGroups);
+            if (endpoint == null) {
+                return new LoggersReport(UNAVAILABLE, List.of(), List.of(), List.of(), 0);
+            }
+            LoggersDescriptor descriptor = endpoint.loggers();
+            boolean all = prefix == null || prefix.isBlank();
+            List<LoggerLevel> loggers = descriptor.getLoggers()
+                .entrySet()
+                .stream()
+                .map((entry) -> loggerLevel(entry.getKey(), entry.getValue()))
+                .filter((logger) -> all ? ROOT.equals(logger.name()) || logger.configuredLevel() != null
+                        : logger.name().startsWith(prefix))
+                .sorted(ROOT_FIRST)
+                .toList();
+            List<LoggerLevel> limited = this.sanitizer.limit(loggers);
+            List<LoggerGroupLevel> groups = all ? groups(descriptor.getGroups()) : List.of();
+            List<String> levels = descriptor.getLevels().stream().map(LogLevel::name).toList();
+            String summary = all
+                    ? loggers.size() + " loggers are ROOT or have a configured level; " + groups.size() + " groups."
+                    : loggers.size() + " loggers start with '" + prefix + "'.";
+            return new LoggersReport(summary, levels, limited, groups, loggers.size() - limited.size());
+        }, (failure) -> new LoggersReport(failure, List.of(), List.of(), List.of(), 0));
     }
 
     private List<LoggerGroupLevel> groups(Map<String, GroupLoggerLevelsDescriptor> groups) {

@@ -55,6 +55,13 @@ class DemoApplicationTests extends McpAppTest {
     }
 
     @Test
+    void logsEveryToolCallWithItsArgumentsAndCaller(CapturedOutput output) {
+        call(this.client, "get_metric", Map.of("name", "jvm.memory.used"));
+        assertThat(output).containsPattern("INFO .*MCP tool call: get_metric\\(name=jvm\\.memory\\.used\\) by an "
+                + "unauthenticated caller via " + Pattern.quote(CLIENT) + ": ok in \\d+ ms");
+    }
+
+    @Test
     void registersReadOnlyTools() {
         assertThat(toolNames(this.client)).containsExactly("get_environment", "get_health", "get_loggers",
                 "get_metric", "get_slow_endpoints", "list_metrics");

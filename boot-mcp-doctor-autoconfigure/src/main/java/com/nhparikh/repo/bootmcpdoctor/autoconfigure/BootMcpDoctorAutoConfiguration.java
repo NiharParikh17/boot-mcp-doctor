@@ -74,8 +74,8 @@ public class BootMcpDoctorAutoConfiguration {
     }
 
     @Bean
-    ToolGuard bootMcpDoctorToolGuard(ObjectProvider<ToolAuthorizer> authorizer) {
-        return new ToolGuard(authorizer.getIfAvailable());
+    ToolGuard bootMcpDoctorToolGuard(ObjectProvider<ToolAuthorizer> authorizer, ResponseSanitizer sanitizer) {
+        return new ToolGuard(authorizer.getIfAvailable(), new ToolCallLog(sanitizer));
     }
 
     @Bean

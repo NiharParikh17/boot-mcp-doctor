@@ -4,6 +4,7 @@ import com.nhparikh.repo.bootmcpdoctor.config.BootMcpDoctorProperties;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -34,6 +35,28 @@ class SpringSecurityToolAuthorizerTests {
                 new BootMcpDoctorProperties.Security(false, null, null));
         assertThat(authorizer.denyReason("get_health", false))
             .isEqualTo("get_health requires an authenticated caller.");
+    }
+
+    @Test
+    void namesTheAuthenticatedCaller() {
+        authenticate("ROLE_OPS");
+        assertThat(authorizer().caller()).isEqualTo("ops");
+    }
+
+    @Test
+    void namesNoCallerUnlessAuthenticated() {
+        assertThat(authorizer().caller()).isNull();
+        SecurityContextHolder.getContext()
+            .setAuthentication(new AnonymousAuthenticationToken("key", "anonymousUser",
+                    AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS")));
+        assertThat(authorizer().caller()).isNull();
+        SecurityContextHolder.getContext()
+            .setAuthentication(UsernamePasswordAuthenticationToken.unauthenticated("ops", "secret"));
+        assertThat(authorizer().caller()).isNull();
+    }
+
+    private static SpringSecurityToolAuthorizer authorizer() {
+        return new SpringSecurityToolAuthorizer(new BootMcpDoctorProperties.Security(false, null, null));
     }
 
     private static void authenticate(String... authorities) {

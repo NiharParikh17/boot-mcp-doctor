@@ -79,20 +79,22 @@ public class MetricsTools {
                     idempotentHint = true, openWorldHint = false))
     public MetricNamesReport listMetrics(@McpToolParam(required = false,
             description = "Only return names that start with this prefix, for example jvm.") String prefix) {
-        MetricsEndpoint endpoint = endpoint();
-        if (endpoint == null) {
-            return new MetricNamesReport(UNAVAILABLE, List.of(), 0);
-        }
-        List<String> names = endpoint.listNames()
-            .getNames()
-            .stream()
-            .filter((name) -> isBlank(prefix) || name.startsWith(prefix))
-            .sorted()
-            .toList();
-        List<String> limited = this.sanitizer.limit(names);
-        String scope = isBlank(prefix) ? "" : " starting with '" + prefix + "'";
-        String summary = names.isEmpty() ? "No metrics" + scope + "." : names.size() + " metrics" + scope + ".";
-        return new MetricNamesReport(summary, limited, names.size() - limited.size());
+        return ToolCalls.run("list_metrics", () -> {
+            MetricsEndpoint endpoint = endpoint();
+            if (endpoint == null) {
+                return new MetricNamesReport(UNAVAILABLE, List.of(), 0);
+            }
+            List<String> names = endpoint.listNames()
+                .getNames()
+                .stream()
+                .filter((name) -> isBlank(prefix) || name.startsWith(prefix))
+                .sorted()
+                .toList();
+            List<String> limited = this.sanitizer.limit(names);
+            String scope = isBlank(prefix) ? "" : " starting with '" + prefix + "'";
+            String summary = names.isEmpty() ? "No metrics" + scope + "." : names.size() + " metrics" + scope + ".";
+            return new MetricNamesReport(summary, limited, names.size() - limited.size());
+        }, (failure) -> new MetricNamesReport(failure, List.of(), 0));
     }
 
     /**
@@ -113,41 +115,43 @@ public class MetricsTools {
             @McpToolParam(description = "Metric name, for example jvm.memory.used") String name,
             @McpToolParam(required = false,
                     description = "Tag filters as KEY:VALUE, for example area:heap or uri:/orders") List<String> tags) {
-        MetricsEndpoint endpoint = endpoint();
-        if (endpoint == null) {
-            return notFound(name, UNAVAILABLE, List.of());
-        }
-        if (isBlank(name)) {
-            return notFound(name, "A metric name is required. Use list_metrics to see the available names.",
-                    List.of());
-        }
-        List<String> tagFilters = (tags != null) ? tags : List.of();
-        for (String tag : tagFilters) {
-            if (tag == null || tag.indexOf(':') < 1) {
-                return notFound(name, "Tags must be written as KEY:VALUE, for example area:heap. Got: " + tag,
+        return ToolCalls.run("get_metric", () -> {
+            MetricsEndpoint endpoint = endpoint();
+            if (endpoint == null) {
+                return notFound(name, UNAVAILABLE, List.of());
+            }
+            if (isBlank(name)) {
+                return notFound(name, "A metric name is required. Use list_metrics to see the available names.",
                         List.of());
             }
-        }
-        MetricDescriptor metric = endpoint.metric(name, tagFilters);
-        if (metric == null) {
-            List<String> suggestions = suggest(name, endpoint.listNames().getNames());
-            String reason = tagFilters.isEmpty() ? "No metric named '" + name + "'."
-                    : "No values for metric '" + name + "' with tags " + tagFilters + ".";
-            return notFound(name, reason, suggestions);
-        }
-        List<Measurement> measurements = metric.getMeasurements()
-            .stream()
-            .map((sample) -> measurement(sample, metric.getBaseUnit()))
-            .toList();
-        Map<String, List<String>> availableTags = new LinkedHashMap<>();
-        for (AvailableTag tag : this.sanitizer.limit(metric.getAvailableTags())) {
-            availableTags.put(tag.getTag(), this.sanitizer.limit(tag.getValues().stream().sorted().toList()));
-        }
-        String summary = measurements.isEmpty() ? "no measurements" : measurements.stream()
-            .map((m) -> m.statistic() + " " + m.value() + ((m.unit() != null) ? " " + m.unit() : ""))
-            .collect(Collectors.joining(", "));
-        return new MetricReport(name, true, name + ": " + summary + ".", metric.getDescription(), measurements,
-                availableTags, List.of());
+            List<String> tagFilters = (tags != null) ? tags : List.of();
+            for (String tag : tagFilters) {
+                if (tag == null || tag.indexOf(':') < 1) {
+                    return notFound(name, "Tags must be written as KEY:VALUE, for example area:heap. Got: " + tag,
+                            List.of());
+                }
+            }
+            MetricDescriptor metric = endpoint.metric(name, tagFilters);
+            if (metric == null) {
+                List<String> suggestions = suggest(name, endpoint.listNames().getNames());
+                String reason = tagFilters.isEmpty() ? "No metric named '" + name + "'."
+                        : "No values for metric '" + name + "' with tags " + tagFilters + ".";
+                return notFound(name, reason, suggestions);
+            }
+            List<Measurement> measurements = metric.getMeasurements()
+                .stream()
+                .map((sample) -> measurement(sample, metric.getBaseUnit()))
+                .toList();
+            Map<String, List<String>> availableTags = new LinkedHashMap<>();
+            for (AvailableTag tag : this.sanitizer.limit(metric.getAvailableTags())) {
+                availableTags.put(tag.getTag(), this.sanitizer.limit(tag.getValues().stream().sorted().toList()));
+            }
+            String summary = measurements.isEmpty() ? "no measurements" : measurements.stream()
+                .map((m) -> m.statistic() + " " + m.value() + ((m.unit() != null) ? " " + m.unit() : ""))
+                .collect(Collectors.joining(", "));
+            return new MetricReport(name, true, name + ": " + summary + ".", metric.getDescription(), measurements,
+                    availableTags, List.of());
+        }, (failure) -> notFound(name, failure, List.of()));
     }
 
     /**
@@ -166,46 +170,48 @@ public class MetricsTools {
                     destructiveHint = false, idempotentHint = true, openWorldHint = false))
     public SlowEndpointsReport getSlowEndpoints(@McpToolParam(required = false,
             description = "How many endpoints to return. Defaults to 5.") Integer limit) {
-        MetricsEndpoint endpoint = endpoint();
-        if (endpoint == null) {
-            return new SlowEndpointsReport(UNAVAILABLE, List.of(), 0);
-        }
-        MetricDescriptor requests = endpoint.metric(HTTP_REQUESTS, List.of());
-        if (requests == null) {
-            return new SlowEndpointsReport("No HTTP requests recorded yet. The " + HTTP_REQUESTS
-                    + " metric appears after the application has served its first request.", List.of(), 0);
-        }
-        List<EndpointLatency> endpoints = new ArrayList<>();
-        for (String uri : tagValues(requests, "uri")) {
-            if (isIgnored(uri)) {
-                continue;
+        return ToolCalls.run("get_slow_endpoints", () -> {
+            MetricsEndpoint endpoint = endpoint();
+            if (endpoint == null) {
+                return new SlowEndpointsReport(UNAVAILABLE, List.of(), 0);
             }
-            MetricDescriptor byUri = endpoint.metric(HTTP_REQUESTS, List.of("uri:" + uri));
-            Set<String> methods = tagValues(byUri, "method");
-            for (String method : methods.isEmpty() ? Set.of("") : methods) {
-                List<String> tags = method.isEmpty() ? List.of("uri:" + uri)
-                        : List.of("uri:" + uri, "method:" + method);
-                EndpointLatency latency = latency(endpoint, method, uri, tags);
-                if (latency != null) {
-                    endpoints.add(latency);
+            MetricDescriptor requests = endpoint.metric(HTTP_REQUESTS, List.of());
+            if (requests == null) {
+                return new SlowEndpointsReport("No HTTP requests recorded yet. The " + HTTP_REQUESTS
+                        + " metric appears after the application has served its first request.", List.of(), 0);
+            }
+            List<EndpointLatency> endpoints = new ArrayList<>();
+            for (String uri : tagValues(requests, "uri")) {
+                if (isIgnored(uri)) {
+                    continue;
+                }
+                MetricDescriptor byUri = endpoint.metric(HTTP_REQUESTS, List.of("uri:" + uri));
+                Set<String> methods = tagValues(byUri, "method");
+                for (String method : methods.isEmpty() ? Set.of("") : methods) {
+                    List<String> tags = method.isEmpty() ? List.of("uri:" + uri)
+                            : List.of("uri:" + uri, "method:" + method);
+                    EndpointLatency latency = latency(endpoint, method, uri, tags);
+                    if (latency != null) {
+                        endpoints.add(latency);
+                    }
                 }
             }
-        }
-        endpoints.sort(Comparator.comparingDouble(EndpointLatency::meanMs).reversed());
-        int requested = (limit != null && limit > 0) ? limit : DEFAULT_SLOW_ENDPOINTS;
-        int count = Math.min(requested, this.sanitizer.maxItems());
-        List<EndpointLatency> slowest = endpoints.subList(0, Math.min(count, endpoints.size()));
-        String summary;
-        if (endpoints.isEmpty()) {
-            summary = "No application endpoints have served requests yet.";
-        }
-        else {
-            EndpointLatency top = endpoints.get(0);
-            summary = "Slowest of " + endpoints.size() + " endpoints: " + top.method() + " " + top.uri()
-                    + " averages " + top.meanMs() + " ms over " + top.count() + " requests (max " + top.maxMs()
-                    + " ms, " + top.errorRatePercent() + "% errors).";
-        }
-        return new SlowEndpointsReport(summary, List.copyOf(slowest), endpoints.size());
+            endpoints.sort(Comparator.comparingDouble(EndpointLatency::meanMs).reversed());
+            int requested = (limit != null && limit > 0) ? limit : DEFAULT_SLOW_ENDPOINTS;
+            int count = Math.min(requested, this.sanitizer.maxItems());
+            List<EndpointLatency> slowest = endpoints.subList(0, Math.min(count, endpoints.size()));
+            String summary;
+            if (endpoints.isEmpty()) {
+                summary = "No application endpoints have served requests yet.";
+            }
+            else {
+                EndpointLatency top = endpoints.get(0);
+                summary = "Slowest of " + endpoints.size() + " endpoints: " + top.method() + " " + top.uri()
+                        + " averages " + top.meanMs() + " ms over " + top.count() + " requests (max " + top.maxMs()
+                        + " ms, " + top.errorRatePercent() + "% errors).";
+            }
+            return new SlowEndpointsReport(summary, List.copyOf(slowest), endpoints.size());
+        }, (failure) -> new SlowEndpointsReport(failure, List.of(), 0));
     }
 
     private EndpointLatency latency(MetricsEndpoint endpoint, String method, String uri, List<String> tags) {

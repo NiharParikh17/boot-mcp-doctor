@@ -123,12 +123,17 @@ class HealthToolsTests {
     }
 
     @Test
-    void reportsFailureWhenHealthEndpointThrows() {
+    void reportsFailureWhenHealthEndpointThrowsWithoutItsMessage() {
         HealthEndpoint endpoint = mock(HealthEndpoint.class);
-        given(endpoint.health()).willThrow(new IllegalStateException("registry closed"));
+        IllegalStateException failure = new IllegalStateException("registry closed, password=hunter2");
+        given(endpoint.health()).willThrow(failure);
+        ToolCalls.start();
         HealthReport report = new HealthTools(provider(endpoint), sanitizer()).getHealth();
+        assertThat(ToolCalls.finish().failure()).isSameAs(failure);
         assertThat(report.status()).isNull();
-        assertThat(report.summary()).isEqualTo("Health check failed: registry closed");
+        assertThat(report.summary())
+            .isEqualTo("get_health failed with IllegalStateException. The application's log has the details.");
+        assertThat(report.toString()).doesNotContain("hunter2");
     }
 
     private static HealthTools tools(AssertableApplicationContext context, int maxItems) {

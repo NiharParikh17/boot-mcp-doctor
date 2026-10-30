@@ -11,4 +11,9 @@ interface ToolAuthorizer {
      * @return why the call is denied, or {@code null} if it is allowed
      */
     String denyReason(String tool, boolean write);
+
+    /**
+     * @return the name of the authenticated caller, or {@code null} when the caller is not authenticated
+     */
+    String caller();
 }

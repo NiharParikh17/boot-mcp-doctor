@@ -86,6 +86,20 @@ class EnvironmentToolsTests {
     }
 
     @Test
+    void reportsFailuresWithoutTheirMessage() {
+        IllegalStateException failure = new IllegalStateException("could not read spring.datasource.password");
+        SanitizingFunction failing = (data) -> {
+            throw failure;
+        };
+        ToolCalls.start();
+        EnvironmentReport report = tools(List.of(failing), 50).getEnvironment("spring.application");
+        assertThat(ToolCalls.finish().failure()).isSameAs(failure);
+        assertThat(report.summary())
+            .isEqualTo("get_environment failed with IllegalStateException. The application's log has the details.");
+        assertThat(report.properties()).isEmpty();
+    }
+
+    @Test
     void capsPropertiesAtMaxItems() {
         EnvironmentReport report = tools(List.of(), 2).getEnvironment(null);
         assertThat(report.properties()).hasSize(2);
