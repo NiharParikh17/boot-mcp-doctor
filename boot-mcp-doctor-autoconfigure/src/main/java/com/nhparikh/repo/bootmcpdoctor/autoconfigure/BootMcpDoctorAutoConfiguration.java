@@ -36,6 +36,7 @@ import org.springframework.boot.micrometer.metrics.actuate.endpoint.MetricsEndpo
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.SpringVersion;
 import org.springframework.core.env.Environment;
 import org.springframework.util.function.SingletonSupplier;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -102,7 +103,7 @@ public class BootMcpDoctorAutoConfiguration {
             @Qualifier("bootMcpDoctorToolSpecifications") List<McpServerFeatures.SyncToolSpecification> specifications,
             ObjectProvider<ToolAuthorizer> authorizer, BootMcpDoctorProperties properties) {
         return new StartupLog(specifications.stream().map(McpServerFeatures.SyncToolSpecification::tool).toList(),
-                properties.security(), authorizer.getIfAvailable() != null);
+                properties.security(), authorizer.getIfAvailable() != null, SpringVersion.getVersion());
     }
 
     @Bean

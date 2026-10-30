@@ -33,6 +33,12 @@ final class StartupLog implements ApplicationListener<ApplicationReadyEvent> {
             + "MCP endpoint can call the read tools without authenticating. Use this only where untrusted clients "
             + "cannot reach it.";
 
+    static final String SSE_BROKEN = "SSE clients can't connect: Spring Framework 7.0.6, which Spring Boot 4.0.4 and "
+            + "4.0.5 use, breaks the SSE transport. Set spring.ai.mcp.server.protocol=STREAMABLE, or use Spring Boot "
+            + "4.0.6 or later.";
+
+    private static final String SSE = "SSE";
+
     private static final Log logger = LogFactory.getLog(StartupLog.class);
 
     private final List<Tool> tools;
@@ -41,15 +47,20 @@ final class StartupLog implements ApplicationListener<ApplicationReadyEvent> {
 
     private final boolean springSecurity;
 
+    private final String springFramework;
+
     /**
      * @param tools the registered tools
      * @param security who may call them
      * @param springSecurity whether Spring Security authenticates callers
+     * @param springFramework the Spring Framework version, or {@code null} when it can't be read
      */
-    StartupLog(List<Tool> tools, BootMcpDoctorProperties.Security security, boolean springSecurity) {
+    StartupLog(List<Tool> tools, BootMcpDoctorProperties.Security security, boolean springSecurity,
+            String springFramework) {
         this.tools = tools;
         this.security = security;
         this.springSecurity = springSecurity;
+        this.springFramework = springFramework;
     }
 
     @Override
@@ -63,16 +74,32 @@ final class StartupLog implements ApplicationListener<ApplicationReadyEvent> {
         String running = "boot-mcp-doctor is running" + location;
         if (this.tools.isEmpty()) {
             logger.warn(running + NO_TOOLS);
-            return;
         }
-        List<String> names = this.tools.stream().map(Tool::name).sorted().toList();
-        List<String> writeNames = this.tools.stream().filter(ToolGuard::isWrite).map(Tool::name).sorted().toList();
-        logger.info(running + " with " + names.size() + (writeNames.isEmpty() ? " read-only" : "")
-                + ((names.size() == 1) ? " tool: " : " tools: ") + String.join(", ", names) + ". "
-                + access(writeNames) + ".");
-        if (acceptsAnyCaller()) {
-            logger.warn(ANY_CALLER);
+        else {
+            List<String> names = this.tools.stream().map(Tool::name).sorted().toList();
+            List<String> writeNames = this.tools.stream()
+                .filter(ToolGuard::isWrite)
+                .map(Tool::name)
+                .sorted()
+                .toList();
+            logger.info(running + " with " + names.size() + (writeNames.isEmpty() ? " read-only" : "")
+                    + ((names.size() == 1) ? " tool: " : " tools: ") + String.join(", ", names) + ". "
+                    + access(writeNames) + ".");
+            if (acceptsAnyCaller()) {
+                logger.warn(ANY_CALLER);
+            }
         }
+        if (location.endsWith("(" + SSE + ")") && isSseBroken(this.springFramework)) {
+            logger.warn(SSE_BROKEN);
+        }
+    }
+
+    /**
+     * @param springFramework the Spring Framework version, or {@code null} when it can't be read
+     * @return whether that version's SSE transport is broken
+     */
+    static boolean isSseBroken(String springFramework) {
+        return "7.0.6".equals(springFramework);
     }
 
     // Where clients reach the server, or null when no synchronous server serves these tools.
@@ -92,7 +119,7 @@ final class StartupLog implements ApplicationListener<ApplicationReadyEvent> {
             return " over stdio";
         }
         if (has(context, McpServerTransportProvider.class)) {
-            return at(endpoints.inRequest(endpoints.sse()), port, "SSE");
+            return at(endpoints.inRequest(endpoints.sse()), port, SSE);
         }
         return "";
     }

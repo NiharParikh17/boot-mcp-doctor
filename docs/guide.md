@@ -66,6 +66,7 @@ The tools describe whatever is in the application, including configuration value
 | An application without a web server, such as a batch job | The starter starts Tomcat so that the MCP endpoint can be reached over HTTP. | Use it in web applications only. |
 | `spring.ai.mcp.server.type=ASYNC` | boot-mcp-doctor only provides synchronous tools, so nothing is served. The startup log warns: `no synchronous MCP server is running`. | Leave `type` at its default, `SYNC`. |
 | `spring.ai.mcp.server.protocol` not set | Spring AI 2.0 falls back to the older SSE transport, so `/mcp` does not exist and clients get HTTP 404 from it. The startup line says `(SSE)`. | Set `protocol: STREAMABLE`. |
+| SSE on Spring Boot 4.0.4 or 4.0.5 | Spring Framework 7.0.6, which these versions use, breaks the SSE transport of Spring AI's MCP server: clients time out while connecting, with or without boot-mcp-doctor. A warning at startup says so. | Set `protocol: STREAMABLE`, or use Spring Boot 4.0.6 or later. |
 | No Spring Security and `allow-unauthenticated` not set | No tools are registered, by design. The log says `registered no tools because nothing authenticates callers`. | Add Spring Security, or opt in for local development. |
 | Several instances behind a load balancer | With `STREAMABLE` or `SSE`, each session lives in the memory of one instance. If the next request lands on another instance, it fails with HTTP 404 `Session not found`. | Use sticky sessions, or `protocol: STATELESS`. Either way, each answer describes only the instance that served it. |
 | A client that can only sign in through its own OAuth flow | Your application does not publish OAuth discovery metadata, so the client falls back to `/authorize` on your application and the sign-in fails. | Send the token in a header instead; see [Connecting clients](#connecting-clients). |
@@ -517,6 +518,7 @@ Warnings at startup:
 | `boot-mcp-doctor.security.allow-unauthenticated=true: anyone who can reach the MCP endpoint can call the read tools without authenticating.` | A reminder that the tools are open. |
 | `Tools that change state, such as set_log_level, were not registered: ...` | `read-only: false`, but Spring Security or `write-authority` is missing. |
 | `boot-mcp-doctor.tools names tools that will not be registered: [...]` | A name in `include` or `exclude` is misspelled or removed by another setting. |
+| `SSE clients can't connect: Spring Framework 7.0.6, which Spring Boot 4.0.4 and 4.0.5 use, breaks the SSE transport.` | The transport is SSE on Spring Framework 7.0.6. See [When it will not work](#when-it-will-not-work). |
 
 ### When a client connects
 
