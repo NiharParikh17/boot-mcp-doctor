@@ -474,7 +474,7 @@ If a client asks to sign in, or opens `/authorize` on your application, the clie
 
 ## Logs
 
-Since 0.1.1, boot-mcp-doctor logs one line when the application is ready and one line for each client that connects. Since 0.1.2, it also logs whether it supports the application's versions, even when it is turned off.
+Since 0.1.1, boot-mcp-doctor logs one line when the application is ready and one line for each client that connects. Since 0.1.2, it also logs whether it supports the application's versions, even when it is turned off, and one line for every tool call.
 
 ### Compatibility
 
@@ -536,11 +536,34 @@ MCP client connected: Visual Studio Code 1.105.1 (protocol 2025-06-18, session b
 - **Client-supplied values:** the client name and version come from the client, so line breaks and other control characters are replaced with `?` and values are cut at 100 characters.
 - **Applications:** connections are logged in Spring MVC applications.
 
+### When a tool is called
+
+Every tool call is logged once, when it finishes, so you can see who looked at what and who changed what:
+
+```text
+MCP tool call: get_metric(name=jvm.memory.used) by ops via Visual Studio Code 1.105.1: ok in 4 ms
+MCP tool call: set_log_level(logger=com.example.orders, level=DEBUG) by admin via Visual Studio Code 1.105.1: ok in 3 ms. Set com.example.orders from INFO to DEBUG (effective DEBUG).
+MCP tool call: set_log_level(logger=ROOT, level=DEBUG) by viewer via Visual Studio Code 1.105.1: refused: set_log_level requires the ROLE_OPS_ADMIN authority.
+MCP tool call: get_environment(prefix=spring.datasource) by ops via Visual Studio Code 1.105.1: failed with IllegalStateException in 2 ms
+```
+
+| Part | Meaning |
+|---|---|
+| `get_metric(name=jvm.memory.used)` | The tool and the arguments the client sent. Values are masked like tool responses, so a key such as `password` shows `******`, and kept on one line and to 100 characters. |
+| `by ops` | The user Spring Security authenticated, or `by an unauthenticated caller`. |
+| `via Visual Studio Code 1.105.1` | The client's name and version, as it reported them when it connected. Left out with `STATELESS`, whose requests don't carry them. |
+| `ok in 4 ms` | The tool answered, and how long it took. For `set_log_level`, what it changed follows, or why nothing changed. |
+| `refused: ...` | boot-mcp-doctor turned the call away, and why. The client gets `Not authorized: ...`. Logged at WARN. |
+| `failed with ...` | The tool hit an unexpected error. The stack trace follows the line, at WARN. The client gets `<tool> failed with <exception>. The application's log has the details.`, without the exception's own message, which can contain configuration values. |
+
+Tool results themselves are never logged.
+
 ### Turning them off
 
 | Setting | Effect |
 |---|---|
 | `logging.level.com.nhparikh.repo.bootmcpdoctor.autoconfigure.ConnectionLogFilter: WARN` | No connection lines. |
+| `logging.level.com.nhparikh.repo.bootmcpdoctor.autoconfigure.ToolCallLog: WARN` | Only refused and failed tool calls. |
 | `logging.level.com.nhparikh.repo.bootmcpdoctor.autoconfigure.CompatibilityLog: WARN` | No compatibility line, unless the versions are not supported. |
 | `logging.level.com.nhparikh.repo.bootmcpdoctor: WARN` | Only warnings from boot-mcp-doctor. |
 
@@ -576,6 +599,7 @@ Things worth knowing about individual tools:
 | HTTP 403 | An authorization rule in your filter chain. | Check `authorizeHttpRequests` for the MCP endpoint. |
 | A tool returns `Not authorized: ... requires an authenticated caller.` | The MCP endpoint lets unauthenticated requests through, and boot-mcp-doctor refused the call. | Require authentication for `/mcp` in Spring Security. |
 | A tool returns `Not authorized: ... requires the X authority.` | The caller lacks `read-authority` or `write-authority`. | Grant it, or check the exact name, including the `ROLE_` or `SCOPE_` prefix. |
+| A tool returns `... failed with <exception>. The application's log has the details.` | The tool hit an unexpected error in the application. | Find the `MCP tool call: ... failed with ...` warning in the application's log; the stack trace after it says what failed. |
 | `set_log_level` is missing | `read-only` is `true`, `write-authority` is not set, Spring Security is missing, or `loggers` access is restricted. | See [`read-only`](#boot-mcp-doctorread-only). |
 | A tool is missing | `include`, `exclude` or Actuator access removed it. | Check the startup warnings and the tool list. |
 | `get_slow_endpoints` says no requests were recorded | The application has not served any HTTP request since it started. | Call an endpoint and ask again. |
@@ -611,6 +635,7 @@ Without Spring Security, in [`samples/demo-app`](../samples/demo-app):
 | `spring.ai.mcp.server.enabled=false` | [`McpServerDisabledTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/McpServerDisabledTests.java) |
 | The connection log turned off | [`ConnectionLogOffTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/ConnectionLogOffTests.java) |
 | The HTTP responses from the curl check | [`HttpResponsesTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/HttpResponsesTests.java) |
+| A tool that fails unexpectedly: a clear error for the client, and the stack trace in the log | [`ToolFailureTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/ToolFailureTests.java) |
 
 With Spring Security, in [`samples/secured-demo-app`](../samples/secured-demo-app):
 

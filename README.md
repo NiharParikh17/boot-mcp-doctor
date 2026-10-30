@@ -346,18 +346,20 @@ boot-mcp-doctor:
 
 ## Logs
 
-Once the application is ready, boot-mcp-doctor logs whether it supports the application's versions, then where its tools are served and who may call them. It also logs each MCP client that connects:
+Once the application is ready, boot-mcp-doctor logs whether it supports the application's versions, then where its tools are served and who may call them. It also logs each MCP client that connects, and each tool call:
 
 ```text
 INFO  c.n.r.b.a.CompatibilityLog        : boot-mcp-doctor 0.1.2 supports this application: Spring Boot 4.1.2 with Spring AI 2.0.2.
 INFO  c.n.r.b.autoconfigure.StartupLog  : boot-mcp-doctor is running at /api/xyz/mcp on port 8090 (Streamable HTTP) with 6 read-only tools: get_environment, get_health, get_loggers, get_metric, get_slow_endpoints, list_metrics. Tool calls need a caller authenticated by Spring Security.
 INFO  c.n.r.b.a.ConnectionLogFilter     : MCP client connected: Visual Studio Code 1.105.1 (protocol 2025-06-18, session bf022b6e, user ops, from 10.0.0.7)
+INFO  c.n.r.b.autoconfigure.ToolCallLog : MCP tool call: get_health() by ops via Visual Studio Code 1.105.1: ok in 4 ms
 ```
 
 - **Compatibility.** Logged even when boot-mcp-doctor is turned off, and as a warning when the application's Spring Boot or Spring AI version is not supported; see [Compatibility](docs/compatibility.md).
 - **Startup.** The path includes the context path and the DispatcherServlet path, so it is what your MCP client needs after `http://<host>:<port>`. Instead of that line, a warning is logged when no MCP server serves the tools or no tools are registered. A second warning follows it when `security.allow-unauthenticated=true` lets callers in without authenticating.
 - **Connections.** A client is logged when its `initialize` request succeeds, with the name and version it reports, the protocol version, the start of its session ID, the user Spring Security authenticated and its address. Requests that Spring Security turns away are not logged. Client names and versions are sent by the client, so line breaks and other control characters are replaced and long values are shortened. Connections are logged in servlet (Spring MVC) applications.
-- **Turning them off.** Set `logging.level.com.nhparikh.repo.bootmcpdoctor.autoconfigure.ConnectionLogFilter=WARN` to stop the connection lines, `logging.level.com.nhparikh.repo.bootmcpdoctor.autoconfigure.CompatibilityLog=WARN` to log the compatibility line only when the versions are not supported, or `logging.level.com.nhparikh.repo.bootmcpdoctor=WARN` to keep only warnings.
+- **Tool calls.** Every call is logged once it finishes, with the tool, its arguments, masked and shortened, the caller, the client and the outcome. Refused and failed calls are warnings, and a failure's stack trace follows it; the client only gets a short message. `set_log_level` adds the levels before and after.
+- **Turning them off.** Set `logging.level.com.nhparikh.repo.bootmcpdoctor.autoconfigure.ConnectionLogFilter=WARN` to stop the connection lines, `logging.level.com.nhparikh.repo.bootmcpdoctor.autoconfigure.CompatibilityLog=WARN` to log the compatibility line only when the versions are not supported, `logging.level.com.nhparikh.repo.bootmcpdoctor.autoconfigure.ToolCallLog=WARN` to log only refused and failed tool calls, or `logging.level.com.nhparikh.repo.bootmcpdoctor=WARN` to keep only warnings.
 
 ## Security
 
@@ -369,6 +371,7 @@ These tools describe the internals of a running application to whoever can reach
 - **Read-only by default.** `set_log_level` is the only tool that changes state. It is only registered when `boot-mcp-doctor.read-only=false`, Spring Security is present, `security.write-authority` is set, and Actuator's `loggers` access is not `read-only` or `none`.
 - **Secrets are always masked.** Keys containing `password`, `secret`, `key`, `token`, `credential` or `auth` are replaced with `******`, as are passwords embedded in URIs such as `jdbc:postgresql://user:pass@host/db`. Any `SanitizingFunction` beans you define for Actuator are applied as well. Masking cannot be turned off; you can only add patterns.
 - **No full dumps.** `get_environment` needs a prefix to look beyond your own config files. Every response is capped at `limits.max-items` entries, and long strings are truncated.
+- **Every call is logged.** Each tool call is logged with its arguments, masked, who made it, from which client and how it went: refused and failed calls at WARN, and `set_log_level` with the levels before and after. Tool results are never logged.
 - **Protect the endpoint too.** Configure Spring Security to require authentication for the MCP endpoint (`/mcp`, or `/sse` and `/mcp/message` for SSE), so unauthenticated requests are turned away before they reach the MCP server at all.
 
 <details>
