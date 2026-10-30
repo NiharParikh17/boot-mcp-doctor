@@ -203,6 +203,10 @@
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
                         <version>${maven-javadoc-plugin.version}</version>
+                        <configuration>
+                            <!-- CI builds the release bundle on every pull request, so new warnings fail there. -->
+                            <failOnWarnings>true</failOnWarnings>
+                        </configuration>
                         <executions>
                             <execution>
                                 <id>attach-javadocs</id>

@@ -30,6 +30,7 @@ public final class ResponseSanitizer {
     private final int maxItems;
 
     /**
+     * Creates a sanitizer that masks the built-in key patterns and {@code additionalKeys}, and caps lists and maps.
      * @param additionalKeys extra key patterns to mask on top of the built-in ones
      * @param maxItems maximum number of entries in any list or map
      */
@@ -41,6 +42,7 @@ public final class ResponseSanitizer {
     }
 
     /**
+     * The most entries a list or map in a response may have.
      * @return maximum number of entries in any list or map
      */
     public int maxItems() {
@@ -84,6 +86,7 @@ public final class ResponseSanitizer {
     }
 
     /**
+     * Whether a key matches a built-in or additional pattern, so that values under it are masked.
      * @param key a property, detail or field name
      * @return whether values under this key must be masked
      */

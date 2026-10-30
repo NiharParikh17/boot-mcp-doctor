@@ -38,6 +38,7 @@ public class HealthTools {
     private final ResponseSanitizer sanitizer;
 
     /**
+     * Creates the {@code get_health} tool over Actuator's health endpoint.
      * @param healthEndpoint the Actuator health endpoint, which may be absent
      * @param sanitizer masks and limits the response
      */
@@ -46,6 +47,7 @@ public class HealthTools {
     }
 
     /**
+     * Creates the {@code get_health} tool over any health endpoint.
      * @param healthEndpoint supplies the health endpoint to read, or {@code null} when there is none
      * @param sanitizer masks and limits the response
      */

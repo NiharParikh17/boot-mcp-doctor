@@ -62,6 +62,12 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @EnableConfigurationProperties(BootMcpDoctorProperties.class)
 public class BootMcpDoctorAutoConfiguration {
 
+    /**
+     * Creates the auto-configuration. Spring Boot does this when it applies it.
+     */
+    public BootMcpDoctorAutoConfiguration() {
+    }
+
     @Bean
     ResponseSanitizer bootMcpDoctorResponseSanitizer(BootMcpDoctorProperties properties) {
         return new ResponseSanitizer(properties.masking().additionalKeys(), properties.limits().maxItems());

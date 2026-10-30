@@ -42,6 +42,7 @@ public class LoggerTools {
     private final ResponseSanitizer sanitizer;
 
     /**
+     * Creates the {@code get_loggers} tool.
      * @param loggingSystem the application's logging system
      * @param loggerGroups the application's logger groups, which may be absent
      * @param sanitizer limits the response

@@ -36,6 +36,7 @@ public record BootMcpDoctorProperties(boolean enabled, @DefaultValue("true") boo
     public record Security(boolean allowUnauthenticated, String readAuthority, String writeAuthority) {
 
         /**
+         * Whether {@code readAuthority} is set, so that read tools need it.
          * @return whether a read authority is configured
          */
         public boolean requiresReadAuthority() {
@@ -43,6 +44,7 @@ public record BootMcpDoctorProperties(boolean enabled, @DefaultValue("true") boo
         }
 
         /**
+         * Whether {@code writeAuthority} is set. Tools that change state are not registered until it is.
          * @return whether a write authority is configured
          */
         public boolean requiresWriteAuthority() {
@@ -64,6 +66,7 @@ public record BootMcpDoctorProperties(boolean enabled, @DefaultValue("true") boo
     public record Tools(@DefaultValue List<String> include, @DefaultValue List<String> exclude) {
 
         /**
+         * Whether a tool passes {@code include} and {@code exclude}.
          * @param name a tool name, such as {@code get_health}
          * @return whether the tool may be registered
          */

@@ -40,6 +40,7 @@ public class EnvironmentTools {
     private final ResponseSanitizer sanitizer;
 
     /**
+     * Creates the {@code get_environment} tool.
      * @param environment the application's environment
      * @param sanitizingFunctions extra sanitizing applied to every value, in order
      * @param sanitizer masks and limits the response

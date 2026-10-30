@@ -53,6 +53,7 @@ public class MetricsTools {
     private final List<String> ignoredPaths;
 
     /**
+     * Creates the {@code list_metrics}, {@code get_metric} and {@code get_slow_endpoints} tools.
      * @param meterRegistry the application's meter registry, which may be absent
      * @param sanitizer limits the response
      * @param ignoredPaths request paths to leave out of {@code get_slow_endpoints}, such as the MCP and Actuator

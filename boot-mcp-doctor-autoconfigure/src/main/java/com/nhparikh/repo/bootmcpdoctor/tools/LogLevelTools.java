@@ -33,6 +33,7 @@ public class LogLevelTools {
     private final ObjectProvider<LoggerGroups> loggerGroups;
 
     /**
+     * Creates the {@code set_log_level} tool.
      * @param loggingSystem the application's logging system
      * @param loggerGroups the application's logger groups, which may be absent
      */
