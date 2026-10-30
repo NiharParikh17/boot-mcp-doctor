@@ -15,8 +15,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * An authorization rule in the filter chain itself, such as a role required for {@code /mcp}, turns other
- * authenticated callers away with HTTP 403 before boot-mcp-doctor sees the request.
+ * An authorization rule in the filter chain itself, such as a role required for {@code /mcp}, turns other authenticated
+ * callers away with HTTP 403 before boot-mcp-doctor sees the request.
  */
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 class AuthorizationRuleTests extends McpAppTest {

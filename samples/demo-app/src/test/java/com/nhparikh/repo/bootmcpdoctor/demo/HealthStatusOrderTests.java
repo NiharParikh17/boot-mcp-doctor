@@ -11,12 +11,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * When health is not exposed, {@code get_health} builds the overall status itself, following
- * {@code management.endpoint.health.status.order} as Actuator does. Here UP ranks before DOWN, so the failing
- * inventory check doesn't make the application DOWN.
+ * {@code management.endpoint.health.status.order} as Actuator does. Here UP ranks before DOWN, so the failing inventory
+ * check doesn't make the application DOWN.
  */
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT,
-        properties = { "management.endpoints.web.exposure.exclude=health",
-                "management.endpoint.health.status.order=up,down" })
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, properties = {
+        "management.endpoints.web.exposure.exclude=health", "management.endpoint.health.status.order=up,down" })
 class HealthStatusOrderTests extends McpAppTest {
 
     @Test

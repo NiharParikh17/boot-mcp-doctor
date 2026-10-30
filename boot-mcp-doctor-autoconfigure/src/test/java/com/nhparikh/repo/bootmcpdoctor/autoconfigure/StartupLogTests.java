@@ -44,9 +44,10 @@ class StartupLogTests {
         this.streamable.withPropertyValues("local.server.port=8090", "server.servlet.context-path=/api/xyz")
             .run((context) -> {
                 ready(context);
-                assertThat(output).contains("boot-mcp-doctor is running at /api/xyz/mcp on port 8090 (Streamable "
-                        + "HTTP) with 6 read-only tools: " + READ_TOOLS
-                        + ". Tool calls need a caller authenticated by Spring Security.")
+                assertThat(output)
+                    .contains("boot-mcp-doctor is running at /api/xyz/mcp on port 8090 (Streamable "
+                            + "HTTP) with 6 read-only tools: " + READ_TOOLS
+                            + ". Tool calls need a caller authenticated by Spring Security.")
                     .doesNotContain(StartupLog.ANY_CALLER);
             });
     }
@@ -97,11 +98,10 @@ class StartupLogTests {
 
     @Test
     void logsTheStatelessEndpoint(CapturedOutput output) {
-        this.enabled.withBean(McpStatelessSyncServer.class, () -> mock(McpStatelessSyncServer.class))
-            .run((context) -> {
-                ready(context);
-                assertThat(output).contains("boot-mcp-doctor is running at /mcp (stateless Streamable HTTP) with 6");
-            });
+        this.enabled.withBean(McpStatelessSyncServer.class, () -> mock(McpStatelessSyncServer.class)).run((context) -> {
+            ready(context);
+            assertThat(output).contains("boot-mcp-doctor is running at /mcp (stateless Streamable HTTP) with 6");
+        });
     }
 
     @Test
@@ -141,14 +141,14 @@ class StartupLogTests {
     @Test
     void namesTheAuthoritiesForReadAndWriteTools(CapturedOutput output) {
         this.streamable
-            .withPropertyValues("boot-mcp-doctor.read-only=false",
-                    "boot-mcp-doctor.security.read-authority=ROLE_OPS",
+            .withPropertyValues("boot-mcp-doctor.read-only=false", "boot-mcp-doctor.security.read-authority=ROLE_OPS",
                     "boot-mcp-doctor.security.write-authority=ROLE_OPS_ADMIN",
                     "boot-mcp-doctor.security.allow-unauthenticated=true")
             .run((context) -> {
                 ready(context);
-                assertThat(output).contains("with 7 tools: " + READ_TOOLS + ", set_log_level. Read tools need the "
-                        + "ROLE_OPS authority; set_log_level needs the ROLE_OPS_ADMIN authority.")
+                assertThat(output)
+                    .contains("with 7 tools: " + READ_TOOLS + ", set_log_level. Read tools need the "
+                            + "ROLE_OPS authority; set_log_level needs the ROLE_OPS_ADMIN authority.")
                     .doesNotContain(StartupLog.ANY_CALLER);
             });
     }

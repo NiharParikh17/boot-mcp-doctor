@@ -60,6 +60,7 @@ public class HealthTools {
      * Reports overall and per-component health.
      * @return the health report
      */
+    // @formatter:off
     @McpTool(name = "get_health", title = "Get health",
             description = """
                     Returns the overall health status of this running application and the status of each health \
@@ -70,6 +71,7 @@ public class HealthTools {
                     Secret values in details are masked.""",
             annotations = @McpAnnotations(title = "Get health", readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
+    // @formatter:on
     public HealthReport getHealth() {
         return ToolCalls.run("get_health", () -> {
             HealthEndpoint endpoint = this.healthEndpoint.get();
@@ -82,8 +84,7 @@ public class HealthTools {
             components.sort(BY_SEVERITY);
             List<ComponentHealth> limited = this.sanitizer.limit(components);
             String status = root.getStatus().getCode();
-            return new HealthReport(status, summarize(status, components), limited,
-                    components.size() - limited.size());
+            return new HealthReport(status, summarize(status, components), limited, components.size() - limited.size());
         }, (failure) -> HealthReport.unavailable(failure));
     }
 
@@ -121,8 +122,7 @@ public class HealthTools {
         if (unhealthy.size() > SUMMARY_NAMES) {
             names += " and " + (unhealthy.size() - SUMMARY_NAMES) + " more";
         }
-        return status + ": " + unhealthy.size() + " of " + components.size() + " components are not UP: " + names
-                + ".";
+        return status + ": " + unhealthy.size() + " of " + components.size() + " components are not UP: " + names + ".";
     }
 
     private static int severity(String status) {

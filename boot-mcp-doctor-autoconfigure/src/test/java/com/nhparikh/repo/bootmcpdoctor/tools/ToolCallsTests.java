@@ -26,8 +26,8 @@ class ToolCallsTests {
         String result = ToolCalls.run("get_health", () -> {
             throw failure;
         }, (message) -> message);
-        assertThat(result).isEqualTo("get_health failed with IllegalStateException. The application's log has the "
-                + "details.");
+        assertThat(result)
+            .isEqualTo("get_health failed with IllegalStateException. The application's log has the details.");
         assertThat(ToolCalls.finish().failure()).isSameAs(failure);
     }
 

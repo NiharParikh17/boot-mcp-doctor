@@ -13,9 +13,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * boot-mcp-doctor's defaults with Spring Security: read-only, and any authenticated caller may call the read tools.
  */
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT,
-        properties = { "boot-mcp-doctor.read-only=true", "boot-mcp-doctor.security.read-authority=",
-                "boot-mcp-doctor.security.write-authority=" })
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, properties = { "boot-mcp-doctor.read-only=true",
+        "boot-mcp-doctor.security.read-authority=", "boot-mcp-doctor.security.write-authority=" })
 class AnyAuthenticatedCallerTests extends McpAppTest {
 
     @Test

@@ -25,11 +25,11 @@ import org.springframework.util.ReflectionUtils;
 /**
  * Builds a health endpoint over the application's health contributors. Spring Boot only creates its own
  * {@link HealthEndpoint} while health is exposed over HTTP or JMX, but the contributor registry always exists, so
- * {@code get_health} works either way. Every contributor is included with its details, and the overall status
- * follows {@code management.endpoint.health.status.order}, as it does in Actuator.
+ * {@code get_health} works either way. Every contributor is included with its details, and the overall status follows
+ * {@code management.endpoint.health.status.order}, as it does in Actuator.
  * <p>
- * Spring Boot 4.1 added {@code StatusAggregator.of} and {@code HttpCodeStatusMapper.getDefault()}, and deprecated
- * what Spring Boot 4.0 has instead for removal. So neither is called directly, and this works on both.
+ * Spring Boot 4.1 added {@code StatusAggregator.of} and {@code HttpCodeStatusMapper.getDefault()}, and deprecated what
+ * Spring Boot 4.0 has instead for removal. So neither is called directly, and this works on both.
  */
 final class InProcessHealthEndpoint {
 

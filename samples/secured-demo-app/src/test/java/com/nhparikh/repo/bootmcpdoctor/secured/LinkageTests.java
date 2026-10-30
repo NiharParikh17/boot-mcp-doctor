@@ -27,11 +27,11 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Every class, field and method that boot-mcp-doctor's code uses is on this application's classpath, so nothing
- * fails to link on a code path that the other tests don't reach. This sample has every optional dependency that
- * boot-mcp-doctor uses, Spring Security included. References that only annotations make are left out, since the
- * JVM ignores missing annotation classes. Run on older Spring Boot versions, this finds the APIs boot-mcp-doctor
- * needs that they don't have yet; see docs/compatibility.md.
+ * Every class, field and method that boot-mcp-doctor's code uses is on this application's classpath, so nothing fails
+ * to link on a code path that the other tests don't reach. This sample has every optional dependency that
+ * boot-mcp-doctor uses, Spring Security included. References that only annotations make are left out, since the JVM
+ * ignores missing annotation classes. Run on older Spring Boot versions, this finds the APIs boot-mcp-doctor needs that
+ * they don't have yet; see docs/compatibility.md.
  */
 class LinkageTests {
 

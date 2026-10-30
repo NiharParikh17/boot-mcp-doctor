@@ -35,8 +35,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Base for tests that boot the secured demo application on a random port, with the properties of the subclass's
  * {@code @SpringBootTest}, and talk to it the way an MCP client does, sending an {@code Authorization} header.
  * <p>
- * Every test class gets its own application, which is stopped afterwards, so the captured output of a class holds
- * that application's startup log.
+ * Every test class gets its own application, which is stopped afterwards, so the captured output of a class holds that
+ * application's startup log.
  */
 @ExtendWith(OutputCaptureExtension.class)
 @DirtiesContext

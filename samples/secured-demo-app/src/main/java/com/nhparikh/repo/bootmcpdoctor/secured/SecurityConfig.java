@@ -13,16 +13,15 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
- * Every request needs an authenticated caller, the MCP endpoint included. Callers authenticate with HTTP Basic, or
- * with a JWT bearer token once a JWT decoder is configured, for example with
+ * Every request needs an authenticated caller, the MCP endpoint included. Callers authenticate with HTTP Basic, or with
+ * a JWT bearer token once a JWT decoder is configured, for example with
  * {@code spring.security.oauth2.resourceserver.jwt.issuer-uri}.
  */
 @Configuration(proxyBeanMethods = false)
 class SecurityConfig {
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, ObjectProvider<JwtDecoder> jwtDecoder)
-            throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http, ObjectProvider<JwtDecoder> jwtDecoder) throws Exception {
         // MCP clients don't send CSRF tokens. /mcp/message is where SSE clients post their messages.
         http.csrf((csrf) -> csrf.ignoringRequestMatchers("/mcp", "/mcp/message"))
             .authorizeHttpRequests((requests) -> requests.anyRequest().authenticated())

@@ -45,16 +45,16 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * Registers boot-mcp-doctor's MCP tools when Actuator and the Spring AI MCP server are on the classpath and
  * {@code boot-mcp-doctor.enabled=true}.
  * <p>
- * Tools read the application in-process, so the Actuator endpoints do not need to be exposed over HTTP. Each tool
- * group activates only when its module is on the classpath, and is left out when its Actuator endpoint's access
- * is set to {@code none}.
+ * Tools read the application in-process, so the Actuator endpoints do not need to be exposed over HTTP. Each tool group
+ * activates only when its module is on the classpath, and is left out when its Actuator endpoint's access is set to
+ * {@code none}.
  * <p>
  * With Spring Security on the classpath, every tool call is checked against the authenticated caller and
  * {@code boot-mcp-doctor.security.*}. Without it, no tools are registered unless
  * {@code boot-mcp-doctor.security.allow-unauthenticated=true}, and tools that change state never are.
  * <p>
- * Once the application is ready, it logs where the tools are served and who may call them. In servlet
- * applications, it also logs each MCP client that connects.
+ * Once the application is ready, it logs where the tools are served and who may call them. In servlet applications, it
+ * also logs each MCP client that connects.
  */
 @AutoConfiguration
 @ConditionalOnClass(value = { Endpoint.class, McpTool.class }, name = "io.modelcontextprotocol.server.McpServer")

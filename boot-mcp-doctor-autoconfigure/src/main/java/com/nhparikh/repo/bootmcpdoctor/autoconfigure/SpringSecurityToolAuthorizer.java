@@ -8,8 +8,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 /**
- * Checks tool calls against the caller that Spring Security authenticated for the current request. Tool calls run
- * on the request thread, so the caller is in the {@link SecurityContextHolder}. If it isn't, the call is denied.
+ * Checks tool calls against the caller that Spring Security authenticated for the current request. Tool calls run on
+ * the request thread, so the caller is in the {@link SecurityContextHolder}. If it isn't, the call is denied.
  */
 class SpringSecurityToolAuthorizer implements ToolAuthorizer {
 
@@ -52,8 +52,7 @@ class SpringSecurityToolAuthorizer implements ToolAuthorizer {
                 && !this.trustResolver.isAnonymous(authentication);
     }
 
-    private static String check(String tool, boolean authenticated, Authentication authentication,
-            String authority) {
+    private static String check(String tool, boolean authenticated, Authentication authentication, String authority) {
         if (!authenticated) {
             return tool + " requires an authenticated caller.";
         }

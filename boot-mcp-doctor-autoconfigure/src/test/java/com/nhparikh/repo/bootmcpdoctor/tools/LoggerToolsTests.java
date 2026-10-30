@@ -40,11 +40,11 @@ class LoggerToolsTests {
     @BeforeEach
     void setUp() {
         given(this.loggingSystem.getSupportedLogLevels()).willReturn(EnumSet.allOf(LogLevel.class));
-        given(this.loggingSystem.getLoggerConfigurations()).willReturn(List.of(
-                new LoggerConfiguration("ROOT", LogLevel.INFO, LogLevel.INFO),
-                new LoggerConfiguration("com.example", LogLevel.DEBUG, LogLevel.DEBUG),
-                new LoggerConfiguration("com.example.orders", null, LogLevel.DEBUG),
-                new LoggerConfiguration("org.springframework", null, LogLevel.INFO)));
+        given(this.loggingSystem.getLoggerConfigurations())
+            .willReturn(List.of(new LoggerConfiguration("ROOT", LogLevel.INFO, LogLevel.INFO),
+                    new LoggerConfiguration("com.example", LogLevel.DEBUG, LogLevel.DEBUG),
+                    new LoggerConfiguration("com.example.orders", null, LogLevel.DEBUG),
+                    new LoggerConfiguration("org.springframework", null, LogLevel.INFO)));
     }
 
     @Test
@@ -85,9 +85,9 @@ class LoggerToolsTests {
                 new LoggerConfiguration("com.example.orders", LogLevel.TRACE, LogLevel.TRACE));
         LogLevelChange change = logLevelTools().setLogLevel("com.example.orders", "trace");
         then(this.loggingSystem).should().setLogLevel("com.example.orders", LogLevel.TRACE);
-        assertThat(change).isEqualTo(new LogLevelChange(
-                "Set com.example.orders from inherited to TRACE (effective TRACE).", "com.example.orders", true,
-                null, "TRACE", "TRACE"));
+        assertThat(change)
+            .isEqualTo(new LogLevelChange("Set com.example.orders from inherited to TRACE (effective TRACE).",
+                    "com.example.orders", true, null, "TRACE", "TRACE"));
     }
 
     @Test
@@ -173,8 +173,8 @@ class LoggerToolsTests {
     private static <T> ObjectProvider<T> provider(T value) {
         ObjectProvider<T> provider = mock(ObjectProvider.class);
         given(provider.getIfAvailable()).willReturn(value);
-        given(provider.getIfAvailable(any())).willAnswer((invocation) -> (value != null) ? value
-                : ((Supplier<T>) invocation.getArgument(0)).get());
+        given(provider.getIfAvailable(any()))
+            .willAnswer((invocation) -> (value != null) ? value : ((Supplier<T>) invocation.getArgument(0)).get());
         return provider;
     }
 }

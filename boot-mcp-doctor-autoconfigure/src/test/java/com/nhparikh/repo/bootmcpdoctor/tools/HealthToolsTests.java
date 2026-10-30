@@ -76,17 +76,15 @@ class HealthToolsTests {
             .withBean("legacy", HealthIndicator.class, () -> indicator(Health.unknown()))
             .withBean("payments", HealthIndicator.class, () -> indicator(Health.status(new Status("DEGRADED"))))
             .withBean("db", HealthIndicator.class, () -> indicator(Health.down()))
-            .run((context) -> assertThat(tools(context, 50).getHealth().components())
-                .extracting(ComponentHealth::name)
+            .run((context) -> assertThat(tools(context, 50).getHealth().components()).extracting(ComponentHealth::name)
                 .containsExactly("db", "payments", "legacy", "disk"));
     }
 
     @Test
     void flattensNestedComponents() {
-        this.contextRunner
-            .withBean("db", CompositeHealthContributor.class,
-                    () -> CompositeHealthContributor.fromMap(Map.of("primary", indicator(Health.up()), "replica",
-                            indicator(Health.down().withDetail("error", "Replication lag")))))
+        this.contextRunner.withBean("db", CompositeHealthContributor.class,
+                () -> CompositeHealthContributor.fromMap(Map.of("primary", indicator(Health.up()), "replica",
+                        indicator(Health.down().withDetail("error", "Replication lag")))))
             .run((context) -> {
                 List<ComponentHealth> components = tools(context, 50).getHealth().components();
                 assertThat(components).extracting(ComponentHealth::name).containsExactly("db/replica", "db/primary");

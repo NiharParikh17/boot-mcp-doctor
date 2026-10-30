@@ -71,6 +71,7 @@ public class MetricsTools {
      * @param prefix optional name prefix
      * @return the matching names
      */
+    // @formatter:off
     @McpTool(name = "list_metrics", title = "List metrics",
             description = """
                     Lists the names of the metrics this application records, such as jvm.memory.used or \
@@ -78,6 +79,7 @@ public class MetricsTools {
                     such as jvm. or hikaricp., to narrow the list.""",
             annotations = @McpAnnotations(title = "List metrics", readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
+    // @formatter:on
     public MetricNamesReport listMetrics(@McpToolParam(required = false,
             description = "Only return names that start with this prefix, for example jvm.") String prefix) {
         return ToolCalls.run("list_metrics", () -> {
@@ -104,6 +106,7 @@ public class MetricsTools {
      * @param tags optional {@code KEY:VALUE} tag filters
      * @return the metric's values, or suggestions when it does not exist
      */
+    // @formatter:off
     @McpTool(name = "get_metric", title = "Get metric",
             description = """
                     Returns the current values of one metric, such as jvm.memory.used, plus the tags that can \
@@ -112,8 +115,8 @@ public class MetricsTools {
                     are cumulative since the application started.""",
             annotations = @McpAnnotations(title = "Get metric", readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
-    public MetricReport getMetric(
-            @McpToolParam(description = "Metric name, for example jvm.memory.used") String name,
+    // @formatter:on
+    public MetricReport getMetric(@McpToolParam(description = "Metric name, for example jvm.memory.used") String name,
             @McpToolParam(required = false,
                     description = "Tag filters as KEY:VALUE, for example area:heap or uri:/orders") List<String> tags) {
         return ToolCalls.run("get_metric", () -> {
@@ -147,9 +150,10 @@ public class MetricsTools {
             for (AvailableTag tag : this.sanitizer.limit(metric.getAvailableTags())) {
                 availableTags.put(tag.getTag(), this.sanitizer.limit(tag.getValues().stream().sorted().toList()));
             }
-            String summary = measurements.isEmpty() ? "no measurements" : measurements.stream()
-                .map((m) -> m.statistic() + " " + m.value() + ((m.unit() != null) ? " " + m.unit() : ""))
-                .collect(Collectors.joining(", "));
+            String summary = measurements.isEmpty() ? "no measurements"
+                    : measurements.stream()
+                        .map((m) -> m.statistic() + " " + m.value() + ((m.unit() != null) ? " " + m.unit() : ""))
+                        .collect(Collectors.joining(", "));
             return new MetricReport(name, true, name + ": " + summary + ".", metric.getDescription(), measurements,
                     availableTags, List.of());
         }, (failure) -> notFound(name, failure, List.of()));
@@ -160,6 +164,7 @@ public class MetricsTools {
      * @param limit how many endpoints to return
      * @return the slowest endpoints
      */
+    // @formatter:off
     @McpTool(name = "get_slow_endpoints", title = "Get slow endpoints",
             description = """
                     Returns this application's slowest HTTP endpoints, ranked by mean latency since startup, with \
@@ -169,6 +174,7 @@ public class MetricsTools {
                     recently. The MCP and Actuator endpoints are left out.""",
             annotations = @McpAnnotations(title = "Get slow endpoints", readOnlyHint = true,
                     destructiveHint = false, idempotentHint = true, openWorldHint = false))
+    // @formatter:on
     public SlowEndpointsReport getSlowEndpoints(@McpToolParam(required = false,
             description = "How many endpoints to return. Defaults to 5.") Integer limit) {
         return ToolCalls.run("get_slow_endpoints", () -> {
@@ -231,8 +237,7 @@ public class MetricsTools {
         MetricDescriptor errors = endpoint.metric(HTTP_REQUESTS, errorTags);
         double errorCount = (errors != null) ? statistic(errors, Statistic.COUNT) : 0;
         return new EndpointLatency(method.isEmpty() ? null : method, uri, (long) count,
-                round(totalSeconds / count * 1000, 1), round(maxSeconds * 1000, 1),
-                round(errorCount / count * 100, 1));
+                round(totalSeconds / count * 1000, 1), round(maxSeconds * 1000, 1), round(errorCount / count * 100, 1));
     }
 
     private boolean isIgnored(String uri) {
@@ -294,10 +299,7 @@ public class MetricsTools {
         String query = name.toLowerCase(Locale.ROOT);
         Comparator<String> byDistance = Comparator
             .comparingInt((String candidate) -> distance(query, candidate.toLowerCase(Locale.ROOT)));
-        return names.stream()
-            .sorted(byDistance.thenComparing(Comparator.naturalOrder()))
-            .limit(SUGGESTIONS)
-            .toList();
+        return names.stream().sorted(byDistance.thenComparing(Comparator.naturalOrder())).limit(SUGGESTIONS).toList();
     }
 
     // Edit distance, with a discount for names that contain the query so that partial names rank well.

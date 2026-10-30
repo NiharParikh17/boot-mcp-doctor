@@ -22,9 +22,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.ContentCachingRequestWrapper;
 
 /**
- * Logs each MCP client that connects: its name and version, the protocol version, the session, the authenticated
- * user and the remote address. It runs on the MCP endpoints after Spring Security, and only logs {@code initialize}
- * requests that succeed, so rejected requests are not logged.
+ * Logs each MCP client that connects: its name and version, the protocol version, the session, the authenticated user
+ * and the remote address. It runs on the MCP endpoints after Spring Security, and only logs {@code initialize} requests
+ * that succeed, so rejected requests are not logged.
  */
 final class ConnectionLogFilter extends OncePerRequestFilter {
 
@@ -141,7 +141,6 @@ final class ConnectionLogFilter extends OncePerRequestFilter {
     private static boolean isSafe(int codePoint) {
         int type = Character.getType(codePoint);
         return !Character.isISOControl(codePoint) && type != Character.LINE_SEPARATOR
-                && type != Character.PARAGRAPH_SEPARATOR && type != Character.FORMAT
-                && type != Character.SURROGATE;
+                && type != Character.PARAGRAPH_SEPARATOR && type != Character.FORMAT && type != Character.SURROGATE;
     }
 }

@@ -15,8 +15,8 @@ import io.modelcontextprotocol.spec.McpSchema.TextContent;
 import io.modelcontextprotocol.spec.McpSchema.Tool;
 
 /**
- * Wraps tool specifications so that every call is authorized before the tool runs, logged with who made it and how
- * it went, and answered with a clear message when it fails. A denied call returns an error result instead of data.
+ * Wraps tool specifications so that every call is authorized before the tool runs, logged with who made it and how it
+ * went, and answered with a clear message when it fails. A denied call returns an error result instead of data.
  */
 final class ToolGuard {
 
@@ -25,8 +25,8 @@ final class ToolGuard {
     private final ToolCallLog log;
 
     /**
-     * @param authorizer checks each call, or {@code null} when nothing authenticates callers; then only read tools
-     * are registered, and calls are not checked
+     * @param authorizer checks each call, or {@code null} when nothing authenticates callers; then only read tools are
+     * registered, and calls are not checked
      * @param log logs each call
      */
     ToolGuard(ToolAuthorizer authorizer, ToolCallLog log) {

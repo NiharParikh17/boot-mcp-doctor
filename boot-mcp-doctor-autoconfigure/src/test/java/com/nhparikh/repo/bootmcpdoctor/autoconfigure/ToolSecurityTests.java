@@ -28,8 +28,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ExtendWith(OutputCaptureExtension.class)
 class ToolSecurityTests {
 
-    private static final List<String> READ_TOOLS = List.of("get_environment", "get_health", "get_loggers",
-            "get_metric", "get_slow_endpoints", "list_metrics");
+    private static final List<String> READ_TOOLS = List.of("get_environment", "get_health", "get_loggers", "get_metric",
+            "get_slow_endpoints", "list_metrics");
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
         .withConfiguration(AutoConfigurations.of(BootMcpDoctorAutoConfiguration.class))

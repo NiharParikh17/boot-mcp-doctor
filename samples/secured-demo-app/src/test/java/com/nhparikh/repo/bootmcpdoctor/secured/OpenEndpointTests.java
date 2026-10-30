@@ -20,8 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Defense in depth: even if the MCP endpoint is accidentally left open in Spring Security, boot-mcp-doctor still
  * refuses tool calls from unauthenticated callers.
  */
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT,
-        properties = "boot-mcp-doctor.security.read-authority=")
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, properties = "boot-mcp-doctor.security.read-authority=")
 class OpenEndpointTests extends McpAppTest {
 
     @Test

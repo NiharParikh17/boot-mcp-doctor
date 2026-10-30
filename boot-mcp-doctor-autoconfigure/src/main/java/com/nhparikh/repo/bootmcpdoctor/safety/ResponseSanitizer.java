@@ -10,8 +10,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 /**
- * Masks secrets and enforces size limits on everything a tool returns. Every tool response passes through
- * this class before it reaches the MCP client.
+ * Masks secrets and enforces size limits on everything a tool returns. Every tool response passes through this class
+ * before it reaches the MCP client.
  */
 public final class ResponseSanitizer {
 

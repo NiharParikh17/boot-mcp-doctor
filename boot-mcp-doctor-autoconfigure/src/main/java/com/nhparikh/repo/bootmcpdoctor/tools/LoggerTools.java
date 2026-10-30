@@ -59,6 +59,7 @@ public class LoggerTools {
      * @param prefix optional logger name prefix
      * @return the matching loggers and the logger groups
      */
+    // @formatter:off
     @McpTool(name = "get_loggers", title = "Get loggers",
             description = """
                     Returns this application's log levels: the level configured for a logger (null when it \
@@ -67,6 +68,7 @@ public class LoggerTools {
                     as com.example or org.springframework.web, to see all loggers under it.""",
             annotations = @McpAnnotations(title = "Get loggers", readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
+    // @formatter:on
     public LoggersReport getLoggers(@McpToolParam(required = false,
             description = "Logger name prefix, for example com.example") String prefix) {
         return ToolCalls.run("get_loggers", () -> {

@@ -63,8 +63,8 @@ class DemoApplicationTests extends McpAppTest {
 
     @Test
     void registersReadOnlyTools() {
-        assertThat(toolNames(this.client)).containsExactly("get_environment", "get_health", "get_loggers",
-                "get_metric", "get_slow_endpoints", "list_metrics");
+        assertThat(toolNames(this.client)).containsExactly("get_environment", "get_health", "get_loggers", "get_metric",
+                "get_slow_endpoints", "list_metrics");
     }
 
     @Test
@@ -78,8 +78,9 @@ class DemoApplicationTests extends McpAppTest {
     void getSlowEndpointsRanksCheckoutFirst() throws Exception {
         HttpClient http = HttpClient.newHttpClient();
         http.send(HttpRequest.newBuilder(URI.create(url("/orders"))).build(), HttpResponse.BodyHandlers.discarding());
-        http.send(HttpRequest.newBuilder(URI.create(url("/checkout"))).POST(HttpRequest.BodyPublishers.noBody())
-            .build(), HttpResponse.BodyHandlers.discarding());
+        http.send(
+                HttpRequest.newBuilder(URI.create(url("/checkout"))).POST(HttpRequest.BodyPublishers.noBody()).build(),
+                HttpResponse.BodyHandlers.discarding());
 
         String report = call(this.client, "get_slow_endpoints", Map.of());
         assertThat(report).contains("Slowest of 2 endpoints: POST /checkout")

@@ -9,8 +9,8 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  * Configuration for boot-mcp-doctor.
  *
  * @param enabled Whether to register the MCP tools. Nothing is registered unless this is true.
- * @param readOnly Whether to register only tools that read state. Tools that change state, such as
- * set_log_level, are not registered at all while this is true.
+ * @param readOnly Whether to register only tools that read state. Tools that change state, such as set_log_level, are
+ * not registered at all while this is true.
  * @param tools Which tools to register.
  * @param security Who may call the tools.
  * @param masking Masking applied to every tool response.
@@ -57,8 +57,8 @@ public record BootMcpDoctorProperties(boolean enabled, @DefaultValue("true") boo
     }
 
     /**
-     * Tool selection. A tool is registered when it is in {@code include} (or {@code include} is empty) and is
-     * not in {@code exclude}.
+     * Tool selection. A tool is registered when it is in {@code include} (or {@code include} is empty) and is not in
+     * {@code exclude}.
      *
      * @param include Names of the tools to register. Empty means all tools.
      * @param exclude Names of tools never to register, even if they are included.
