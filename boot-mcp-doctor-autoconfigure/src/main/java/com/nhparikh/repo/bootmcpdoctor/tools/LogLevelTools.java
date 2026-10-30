@@ -60,37 +60,47 @@ public class LogLevelTools {
             String logger,
             @McpToolParam(description = "TRACE, DEBUG, INFO, WARN, ERROR, FATAL, OFF, or RESET to clear the level")
             String level) {
-        LoggersEndpoint endpoint = LoggerTools.endpoint(this.loggingSystem, this.loggerGroups);
-        if (endpoint == null) {
-            return LogLevelChange.rejected(logger, LoggerTools.UNAVAILABLE);
-        }
-        if (logger == null || logger.isBlank()) {
-            return LogLevelChange.rejected(logger, "A logger name is required, for example ROOT or com.example.");
-        }
-        if (level == null || level.isBlank()) {
-            return LogLevelChange.rejected(logger, "A level is required: " + VALID_LEVELS + ".");
-        }
-        String normalized = level.trim().toUpperCase(Locale.ROOT);
-        LogLevel newLevel;
-        if (RESET.equals(normalized)) {
-            newLevel = null;
-        }
-        else {
-            try {
-                newLevel = LogLevel.valueOf(normalized);
+        return ToolCalls.run("set_log_level", () -> {
+            LoggersEndpoint endpoint = LoggerTools.endpoint(this.loggingSystem, this.loggerGroups);
+            if (endpoint == null) {
+                return rejected(logger, LoggerTools.UNAVAILABLE);
             }
-            catch (IllegalArgumentException ex) {
-                return LogLevelChange.rejected(logger, "Unknown level '" + level + "'. Use " + VALID_LEVELS + ".");
+            if (logger == null || logger.isBlank()) {
+                return rejected(logger, "A logger name is required, for example ROOT or com.example.");
             }
-        }
-        String previous = configuredLevel(endpoint.loggerLevels(logger));
-        endpoint.configureLogLevel(logger, newLevel);
-        LoggerLevelsDescriptor after = endpoint.loggerLevels(logger);
-        String configured = configuredLevel(after);
-        String effective = (after instanceof SingleLoggerLevelsDescriptor single) ? single.getEffectiveLevel() : null;
-        String summary = "Set " + logger + " from " + describe(previous) + " to " + describe(configured)
-                + ((effective != null) ? " (effective " + effective + ")." : ".");
-        return new LogLevelChange(summary, logger, true, previous, configured, effective);
+            if (level == null || level.isBlank()) {
+                return rejected(logger, "A level is required: " + VALID_LEVELS + ".");
+            }
+            String normalized = level.trim().toUpperCase(Locale.ROOT);
+            LogLevel newLevel;
+            if (RESET.equals(normalized)) {
+                newLevel = null;
+            }
+            else {
+                try {
+                    newLevel = LogLevel.valueOf(normalized);
+                }
+                catch (IllegalArgumentException ex) {
+                    return rejected(logger, "Unknown level '" + level + "'. Use " + VALID_LEVELS + ".");
+                }
+            }
+            String previous = configuredLevel(endpoint.loggerLevels(logger));
+            endpoint.configureLogLevel(logger, newLevel);
+            LoggerLevelsDescriptor after = endpoint.loggerLevels(logger);
+            String configured = configuredLevel(after);
+            String effective = (after instanceof SingleLoggerLevelsDescriptor single) ? single.getEffectiveLevel()
+                    : null;
+            String summary = "Set " + logger + " from " + describe(previous) + " to " + describe(configured)
+                    + ((effective != null) ? " (effective " + effective + ")." : ".");
+            ToolCalls.note(summary);
+            return new LogLevelChange(summary, logger, true, previous, configured, effective);
+        }, (failure) -> LogLevelChange.rejected(logger, failure));
+    }
+
+    // Nothing changed, which the line logged about the call says too.
+    private static LogLevelChange rejected(String logger, String reason) {
+        ToolCalls.note("Nothing changed: " + reason);
+        return LogLevelChange.rejected(logger, reason);
     }
 
     private static String configuredLevel(LoggerLevelsDescriptor levels) {

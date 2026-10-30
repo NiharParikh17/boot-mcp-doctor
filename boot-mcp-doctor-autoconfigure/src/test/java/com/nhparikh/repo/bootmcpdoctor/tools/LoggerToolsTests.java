@@ -24,10 +24,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 
 class LoggerToolsTests {
+
+    private static final String FAILED = "failed with IllegalStateException. The application's log has the details.";
 
     private final LoggingSystem loggingSystem = mock(LoggingSystem.class);
 
@@ -121,6 +124,40 @@ class LoggerToolsTests {
         LogLevelChange change = logLevelTools().setLogLevel(" ", "DEBUG");
         assertThat(change.changed()).isFalse();
         then(this.loggingSystem).should(never()).setLogLevel(anyString(), any());
+    }
+
+    @Test
+    void notesWhatItChanged() {
+        given(this.loggingSystem.getLoggerConfiguration("com.example.orders")).willReturn(
+                new LoggerConfiguration("com.example.orders", null, LogLevel.DEBUG),
+                new LoggerConfiguration("com.example.orders", LogLevel.TRACE, LogLevel.TRACE));
+        ToolCalls.start();
+        logLevelTools().setLogLevel("com.example.orders", "trace");
+        assertThat(ToolCalls.finish().note())
+            .isEqualTo("Set com.example.orders from inherited to TRACE (effective TRACE).");
+    }
+
+    @Test
+    void notesThatNothingChanged() {
+        ToolCalls.start();
+        logLevelTools().setLogLevel("com.example", "LOUD");
+        assertThat(ToolCalls.finish().note()).startsWith("Nothing changed: Unknown level 'LOUD'.");
+    }
+
+    @Test
+    void reportsFailuresWithoutTheirMessage() {
+        IllegalStateException failure = new IllegalStateException("logging config at /secret/logback.xml");
+        given(this.loggingSystem.getLoggerConfigurations()).willThrow(failure);
+        willThrow(failure).given(this.loggingSystem).setLogLevel("com.example", LogLevel.WARN);
+        ToolCalls.start();
+        LoggersReport report = loggerTools(50).getLoggers(null);
+        assertThat(ToolCalls.finish().failure()).isSameAs(failure);
+        assertThat(report.summary()).isEqualTo("get_loggers " + FAILED).doesNotContain("secret");
+        ToolCalls.start();
+        LogLevelChange change = logLevelTools().setLogLevel("com.example", "WARN");
+        assertThat(ToolCalls.finish().failure()).isSameAs(failure);
+        assertThat(change.changed()).isFalse();
+        assertThat(change.summary()).isEqualTo("set_log_level " + FAILED);
     }
 
     private LoggerTools loggerTools(int maxItems) {
