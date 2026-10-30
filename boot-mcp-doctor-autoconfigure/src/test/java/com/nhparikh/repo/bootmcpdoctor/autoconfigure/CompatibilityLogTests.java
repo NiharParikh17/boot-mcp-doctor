@@ -26,7 +26,7 @@ class CompatibilityLogTests {
 
     private static final String SEE = " See " + CompatibilityLog.CHART + " for the supported versions.";
 
-    private static final String NEEDS = "it needs Spring Boot 4.1 with Spring AI 2.0, and this application has ";
+    private static final String NEEDS = "it needs Spring Boot 4.0 or 4.1 with Spring AI 2.0, and this application has ";
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
         .withConfiguration(AutoConfigurations.of(CompatibilityLogAutoConfiguration.class));
@@ -53,23 +53,23 @@ class CompatibilityLogTests {
     }
 
     @Test
+    void springBoot40() {
+        assertThat(line(new Application("4.0.0", "2.0.0", true, true, true, true, true)).text())
+            .isEqualTo("boot-mcp-doctor 0.1.2 supports this application: Spring Boot 4.0.0 with Spring AI 2.0.0.");
+    }
+
+    @Test
     void leavesOutItsVersionWhenItCantBeRead() {
         assertThat(CompatibilityLog.line(null, supported(true)).text())
             .startsWith("boot-mcp-doctor supports this application:");
     }
 
     @Test
-    void olderSpringBootWhileItsToolsAreRegistered() {
-        Line line = line(new Application("4.0.9", "2.0.2", true, true, true, true, true));
+    void newerSpringBootWhileItsToolsAreRegistered() {
+        Line line = line(new Application("4.2.0", "2.0.2", true, true, true, true, true));
         assertThat(line).isEqualTo(new Line(true, "boot-mcp-doctor 0.1.2 does not support this application: "
-                + NEEDS + "Spring Boot 4.0.9 with Spring AI 2.0.2. It started anyway, so some tools may not work."
+                + NEEDS + "Spring Boot 4.2.0 with Spring AI 2.0.2. It started anyway, so some tools may not work."
                 + SEE));
-    }
-
-    @Test
-    void newerSpringBoot() {
-        assertThat(line(new Application("4.2.0", "2.0.2", true, true, true, true, true)).text())
-            .contains(NEEDS + "Spring Boot 4.2.0 with Spring AI 2.0.2.");
     }
 
     // Spring AI 1.1 has its MCP annotations elsewhere, so the version is all that is reported.
@@ -104,8 +104,8 @@ class CompatibilityLogTests {
 
     @Test
     void reportsEveryProblem() {
-        assertThat(line(new Application("4.0.9", "2.0.2", false, true, true, true, false)).text())
-            .contains(NEEDS + "Spring Boot 4.0.9 with Spring AI 2.0.2; it needs Spring Boot Actuator on the "
+        assertThat(line(new Application("4.2.0", "2.0.2", false, true, true, true, false)).text())
+            .contains(NEEDS + "Spring Boot 4.2.0 with Spring AI 2.0.2; it needs Spring Boot Actuator on the "
                     + "classpath.");
     }
 
@@ -113,20 +113,21 @@ class CompatibilityLogTests {
     void versionsThatCantBeRead() {
         assertThat(line(new Application(null, "2.0.2", true, true, true, true, true))).isEqualTo(new Line(false,
                 "boot-mcp-doctor 0.1.2 could not read this application's Spring Boot version, so it can't tell "
-                        + "whether it supports it. It supports Spring Boot 4.1 with Spring AI 2.0. See "
+                        + "whether it supports it. It supports Spring Boot 4.0 or 4.1 with Spring AI 2.0. See "
                         + CompatibilityLog.CHART + "."));
         assertThat(line(new Application("4.1.2", null, true, true, true, true, true)).text())
             .contains("could not read this application's Spring AI version");
         assertThat(line(new Application(null, "1.1.8", true, true, false, true, false)).text())
             .contains(NEEDS + "Spring Boot (unknown version) with Spring AI 1.1.8.");
-        assertThat(line(new Application("4.0.9", null, true, true, true, true, true)).text())
-            .contains(NEEDS + "Spring Boot 4.0.9 with Spring AI (unknown version).");
+        assertThat(line(new Application("4.2.0", null, true, true, true, true, true)).text())
+            .contains(NEEDS + "Spring Boot 4.2.0 with Spring AI (unknown version).");
     }
 
-    // The supported lines must be the ones boot-mcp-doctor is built and tested with.
+    // The newest supported lines must be the ones boot-mcp-doctor is built with.
     @Test
     void supportedLinesMatchTheBuild() {
-        assertThat(SpringBootVersion.getVersion()).startsWith(CompatibilityLog.SPRING_BOOT + ".");
+        assertThat(SpringBootVersion.getVersion())
+            .startsWith(CompatibilityLog.SPRING_BOOT.get(CompatibilityLog.SPRING_BOOT.size() - 1) + ".");
         assertThat(CompatibilityLog.springAiVersion(getClass().getClassLoader()))
             .startsWith(CompatibilityLog.SPRING_AI + ".");
     }

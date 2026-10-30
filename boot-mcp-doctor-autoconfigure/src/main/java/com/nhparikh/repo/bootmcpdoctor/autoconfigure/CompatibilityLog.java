@@ -24,9 +24,10 @@ import org.springframework.util.ClassUtils;
 final class CompatibilityLog implements ApplicationListener<ApplicationReadyEvent>, Ordered {
 
     /**
-     * The Spring Boot line this release supports, as in docs/compatibility.md.
+     * The Spring Boot lines this release supports, oldest first, as in docs/compatibility.md. It is built with the
+     * newest.
      */
-    static final String SPRING_BOOT = "4.1";
+    static final List<String> SPRING_BOOT = List.of("4.0", "4.1");
 
     /**
      * The Spring AI line this release supports, as in docs/compatibility.md.
@@ -113,8 +114,8 @@ final class CompatibilityLog implements ApplicationListener<ApplicationReadyEven
         if (problems.isEmpty() && (application.springBoot() == null || application.springAi() == null)) {
             return new Line(false, name + " could not read this application's "
                     + ((application.springBoot() == null) ? "Spring Boot" : "Spring AI")
-                    + " version, so it can't tell whether it supports it. It supports Spring Boot " + SPRING_BOOT
-                    + " with Spring AI " + SPRING_AI + ". See " + CHART + ".");
+                    + " version, so it can't tell whether it supports it. It supports " + supported() + ". See "
+                    + CHART + ".");
         }
         if (problems.isEmpty()) {
             return application.enabled() ? new Line(false, name + " supports this application: " + found + ".")
@@ -148,11 +149,11 @@ final class CompatibilityLog implements ApplicationListener<ApplicationReadyEven
 
     private static List<String> problems(Application application, String found) {
         List<String> problems = new ArrayList<>();
-        boolean springBoot = application.springBoot() == null || isLine(application.springBoot(), SPRING_BOOT);
+        boolean springBoot = application.springBoot() == null
+                || SPRING_BOOT.stream().anyMatch((line) -> isLine(application.springBoot(), line));
         boolean springAi = application.springAi() != null && isLine(application.springAi(), SPRING_AI);
         if (!springBoot || !(springAi || isSpringAiUnread(application))) {
-            problems.add("it needs Spring Boot " + SPRING_BOOT + " with Spring AI " + SPRING_AI
-                    + ", and this application has " + found);
+            problems.add("it needs " + supported() + ", and this application has " + found);
         }
         // With another Spring AI line, its MCP classes are expected to differ, so only the version is reported.
         List<String> missing = new ArrayList<>();
@@ -169,6 +170,11 @@ final class CompatibilityLog implements ApplicationListener<ApplicationReadyEven
             problems.add("it needs " + join(missing) + " on the classpath");
         }
         return problems;
+    }
+
+    // Such as "Spring Boot 4.0 or 4.1 with Spring AI 2.0".
+    private static String supported() {
+        return "Spring Boot " + String.join(" or ", SPRING_BOOT) + " with Spring AI " + SPRING_AI;
     }
 
     // Whether the version, such as 4.1.2 or 4.1.3-SNAPSHOT, belongs to the line, such as 4.1.

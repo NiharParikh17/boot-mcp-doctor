@@ -60,7 +60,7 @@ The tools describe whatever is in the application, including configuration value
 
 | Situation | What happens | What to do |
 |---|---|---|
-| Spring Boot 3 or earlier, or Spring AI 1.x | boot-mcp-doctor is built against Spring Boot 4.1 and Spring AI 2.0, whose packages and APIs differ from earlier versions. It does not run on older ones. | Upgrade the application, or don't use boot-mcp-doctor yet. |
+| Spring Boot 3 or earlier, or Spring AI 1.x | boot-mcp-doctor is built on Spring Boot 4 and Spring AI 2.0, whose packages and APIs differ from earlier versions. It does not run on older ones. | Upgrade the application, or don't use boot-mcp-doctor yet. |
 | Java 16 or earlier | The jars are built for Java 17. | Run on Java 17 or later. |
 | A WebFlux application | The starter brings Spring MVC and Tomcat. When both are present, Spring Boot runs Spring MVC, so your WebFlux application would change underneath you. | Only add it to Spring MVC (servlet) applications. |
 | An application without a web server, such as a batch job | The starter starts Tomcat so that the MCP endpoint can be reached over HTTP. | Use it in web applications only. |
@@ -488,7 +488,7 @@ boot-mcp-doctor 0.1.2 supports this application: Spring Boot 4.1.2 with Spring A
 |---|---|---|
 | `supports this application: ...` | INFO | The versions are supported and boot-mcp-doctor is on. |
 | `supports this application, ..., but is turned off. Set boot-mcp-doctor.enabled=true to turn it on.` | INFO | The versions are supported, but `boot-mcp-doctor.enabled` is not `true`. |
-| `does not support this application: it needs Spring Boot 4.1 with Spring AI 2.0, and this application has ...` | WARN | The versions are not supported. It ends with `It registered no tools.` when boot-mcp-doctor could not start, or `It started anyway, so some tools may not work.` when it did. |
+| `does not support this application: it needs Spring Boot 4.0 or 4.1 with Spring AI 2.0, and this application has ...` | WARN | The versions are not supported. It ends with `It registered no tools.` when boot-mcp-doctor could not start, or `It started anyway, so some tools may not work.` when it did. |
 | `does not support this application: it needs ... on the classpath.` | WARN | Actuator, the MCP server or Spring AI's MCP annotations are missing, which only happens without the starter. |
 | `does not support this application, and is turned off: ...` | INFO | As above, while boot-mcp-doctor is off. |
 | `could not read this application's ... version, so it can't tell whether it supports it.` | INFO | The version is missing from the jar, as in some repackaged applications. |
@@ -621,6 +621,7 @@ Without Spring Security, in [`samples/demo-app`](../samples/demo-app):
 | `management.endpoints.access.max-permitted=none` | [`MaxPermittedAccessTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/MaxPermittedAccessTests.java) |
 | `show-details=never` and a separate management port | [`ActuatorExposureTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/ActuatorExposureTests.java) |
 | Health not exposed, and `get_health` still works | [`HealthNotExposedTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/HealthNotExposedTests.java) |
+| Health not exposed, and `get_health` follows `management.endpoint.health.status.order` | [`HealthStatusOrderTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/HealthStatusOrderTests.java) |
 | Masking: built-in keys, `additional-keys`, URI passwords and health details | [`MaskingTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/MaskingTests.java) |
 | `limits.max-items` | [`ResponseLimitTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/ResponseLimitTests.java) |
 | `limits.max-items=0` stops the application from starting | [`InvalidMaxItemsTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/InvalidMaxItemsTests.java) |
