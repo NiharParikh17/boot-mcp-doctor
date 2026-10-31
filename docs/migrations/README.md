@@ -4,7 +4,7 @@ Every boot-mcp-doctor release has a migration guide from the release before it, 
 
 | Version | Migrating from | Migration needed? |
 |---|---|---|
-| [0.1.2](0.1.2.md) | 0.1.1 | No. Change the version; there are new log lines, and failures are reported without their messages. |
+| [0.1.2](0.1.2.md) | 0.1.1 | No. Change the version; there are new log lines, failures are reported without their messages, and Spring Boot 4.0 is supported. |
 | [0.1.1](0.1.1.md) | 0.1.0 | No. Change the version; three behaviors differ. |
 | [0.1.0](0.1.0.md) | — | Not applicable: the first release. |
 

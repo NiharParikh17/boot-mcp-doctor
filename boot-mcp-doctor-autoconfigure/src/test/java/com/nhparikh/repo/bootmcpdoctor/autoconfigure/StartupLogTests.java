@@ -1,7 +1,9 @@
 package com.nhparikh.repo.bootmcpdoctor.autoconfigure;
 
 import java.time.Duration;
+import java.util.List;
 
+import com.nhparikh.repo.bootmcpdoctor.config.BootMcpDoctorProperties;
 import io.modelcontextprotocol.server.McpStatelessSyncServer;
 import io.modelcontextprotocol.server.McpSyncServer;
 import io.modelcontextprotocol.server.transport.StdioServerTransportProvider;
@@ -67,8 +69,30 @@ class StartupLogTests {
             .withPropertyValues("local.server.port=8080")
             .run((context) -> {
                 ready(context);
-                assertThat(output).contains("boot-mcp-doctor is running at /sse on port 8080 (SSE) with 6");
+                assertThat(output).contains("boot-mcp-doctor is running at /sse on port 8080 (SSE) with 6")
+                    .doesNotContain(StartupLog.SSE_BROKEN);
             });
+    }
+
+    @Test
+    void warnsWhenSpringFrameworkBreaksSse(CapturedOutput output) {
+        this.enabled.withBean(McpSyncServer.class, () -> mock(McpSyncServer.class))
+            .withBean(McpServerTransportProvider.class, () -> mock(McpServerTransportProvider.class))
+            .run((context) -> {
+                new StartupLog(List.of(), new BootMcpDoctorProperties.Security(false, null, null), true, "7.0.6")
+                    .onApplicationEvent(new ApplicationReadyEvent(new SpringApplication(), new String[0],
+                            context.getSourceApplicationContext(), Duration.ZERO));
+                assertThat(output).contains("boot-mcp-doctor is running at /sse (SSE)" + StartupLog.NO_TOOLS)
+                    .contains(StartupLog.SSE_BROKEN);
+            });
+    }
+
+    @Test
+    void knowsWhichSpringFrameworkBreaksSse() {
+        assertThat(StartupLog.isSseBroken("7.0.6")).isTrue();
+        assertThat(StartupLog.isSseBroken("7.0.5")).isFalse();
+        assertThat(StartupLog.isSseBroken("7.0.7")).isFalse();
+        assertThat(StartupLog.isSseBroken(null)).isFalse();
     }
 
     @Test

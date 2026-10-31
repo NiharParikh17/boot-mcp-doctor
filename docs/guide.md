@@ -60,12 +60,13 @@ The tools describe whatever is in the application, including configuration value
 
 | Situation | What happens | What to do |
 |---|---|---|
-| Spring Boot 3 or earlier, or Spring AI 1.x | boot-mcp-doctor is built against Spring Boot 4.1 and Spring AI 2.0, whose packages and APIs differ from earlier versions. It does not run on older ones. | Upgrade the application, or don't use boot-mcp-doctor yet. |
+| Spring Boot 3 or earlier, or Spring AI 1.x | boot-mcp-doctor is built on Spring Boot 4 and Spring AI 2.0, whose packages and APIs differ from earlier versions. It does not run on older ones. | Upgrade the application, or don't use boot-mcp-doctor yet. |
 | Java 16 or earlier | The jars are built for Java 17. | Run on Java 17 or later. |
 | A WebFlux application | The starter brings Spring MVC and Tomcat. When both are present, Spring Boot runs Spring MVC, so your WebFlux application would change underneath you. | Only add it to Spring MVC (servlet) applications. |
 | An application without a web server, such as a batch job | The starter starts Tomcat so that the MCP endpoint can be reached over HTTP. | Use it in web applications only. |
 | `spring.ai.mcp.server.type=ASYNC` | boot-mcp-doctor only provides synchronous tools, so nothing is served. The startup log warns: `no synchronous MCP server is running`. | Leave `type` at its default, `SYNC`. |
 | `spring.ai.mcp.server.protocol` not set | Spring AI 2.0 falls back to the older SSE transport, so `/mcp` does not exist and clients get HTTP 404 from it. The startup line says `(SSE)`. | Set `protocol: STREAMABLE`. |
+| SSE on Spring Boot 4.0.4 or 4.0.5 | Spring Framework 7.0.6, which these versions use, breaks the SSE transport of Spring AI's MCP server: clients time out while connecting, with or without boot-mcp-doctor. A warning at startup says so. | Set `protocol: STREAMABLE`, or use Spring Boot 4.0.6 or later. |
 | No Spring Security and `allow-unauthenticated` not set | No tools are registered, by design. The log says `registered no tools because nothing authenticates callers`. | Add Spring Security, or opt in for local development. |
 | Several instances behind a load balancer | With `STREAMABLE` or `SSE`, each session lives in the memory of one instance. If the next request lands on another instance, it fails with HTTP 404 `Session not found`. | Use sticky sessions, or `protocol: STATELESS`. Either way, each answer describes only the instance that served it. |
 | A client that can only sign in through its own OAuth flow | Your application does not publish OAuth discovery metadata, so the client falls back to `/authorize` on your application and the sign-in fails. | Send the token in a header instead; see [Connecting clients](#connecting-clients). |
@@ -488,7 +489,7 @@ boot-mcp-doctor 0.1.2 supports this application: Spring Boot 4.1.2 with Spring A
 |---|---|---|
 | `supports this application: ...` | INFO | The versions are supported and boot-mcp-doctor is on. |
 | `supports this application, ..., but is turned off. Set boot-mcp-doctor.enabled=true to turn it on.` | INFO | The versions are supported, but `boot-mcp-doctor.enabled` is not `true`. |
-| `does not support this application: it needs Spring Boot 4.1 with Spring AI 2.0, and this application has ...` | WARN | The versions are not supported. It ends with `It registered no tools.` when boot-mcp-doctor could not start, or `It started anyway, so some tools may not work.` when it did. |
+| `does not support this application: it needs Spring Boot 4.0 or 4.1 with Spring AI 2.0, and this application has ...` | WARN | The versions are not supported. It ends with `It registered no tools.` when boot-mcp-doctor could not start, or `It started anyway, so some tools may not work.` when it did. |
 | `does not support this application: it needs ... on the classpath.` | WARN | Actuator, the MCP server or Spring AI's MCP annotations are missing, which only happens without the starter. |
 | `does not support this application, and is turned off: ...` | INFO | As above, while boot-mcp-doctor is off. |
 | `could not read this application's ... version, so it can't tell whether it supports it.` | INFO | The version is missing from the jar, as in some repackaged applications. |
@@ -517,6 +518,7 @@ Warnings at startup:
 | `boot-mcp-doctor.security.allow-unauthenticated=true: anyone who can reach the MCP endpoint can call the read tools without authenticating.` | A reminder that the tools are open. |
 | `Tools that change state, such as set_log_level, were not registered: ...` | `read-only: false`, but Spring Security or `write-authority` is missing. |
 | `boot-mcp-doctor.tools names tools that will not be registered: [...]` | A name in `include` or `exclude` is misspelled or removed by another setting. |
+| `SSE clients can't connect: Spring Framework 7.0.6, which Spring Boot 4.0.4 and 4.0.5 use, breaks the SSE transport.` | The transport is SSE on Spring Framework 7.0.6. See [When it will not work](#when-it-will-not-work). |
 
 ### When a client connects
 
@@ -621,6 +623,7 @@ Without Spring Security, in [`samples/demo-app`](../samples/demo-app):
 | `management.endpoints.access.max-permitted=none` | [`MaxPermittedAccessTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/MaxPermittedAccessTests.java) |
 | `show-details=never` and a separate management port | [`ActuatorExposureTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/ActuatorExposureTests.java) |
 | Health not exposed, and `get_health` still works | [`HealthNotExposedTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/HealthNotExposedTests.java) |
+| Health not exposed, and `get_health` follows `management.endpoint.health.status.order` | [`HealthStatusOrderTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/HealthStatusOrderTests.java) |
 | Masking: built-in keys, `additional-keys`, URI passwords and health details | [`MaskingTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/MaskingTests.java) |
 | `limits.max-items` | [`ResponseLimitTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/ResponseLimitTests.java) |
 | `limits.max-items=0` stops the application from starting | [`InvalidMaxItemsTests`](../samples/demo-app/src/test/java/com/nhparikh/repo/bootmcpdoctor/demo/InvalidMaxItemsTests.java) |

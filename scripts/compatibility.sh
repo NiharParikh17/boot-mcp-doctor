@@ -6,12 +6,12 @@
 #   scripts/compatibility.sh [workers] [pairs-file]
 #
 # workers defaults to 4. pairs-file limits the run to its lines, each "spring-boot spring-ai", such as
-# "4.1.0 2.0.0"; without it, every supported pair is run. Everything, including a separate local Maven repository,
+# "4.0.0 2.0.0"; without it, every supported pair is run. Everything, including a separate local Maven repository,
 # goes to target/compatibility. Results are in target/compatibility/results.txt.
 set -euo pipefail
 
 # The supported versions, as in docs/compatibility.md.
-SPRING_BOOT='4\.1\.[0-9]+'
+SPRING_BOOT='4\.[01]\.[0-9]+'
 SPRING_AI='2\.0\.[0-9]+'
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
