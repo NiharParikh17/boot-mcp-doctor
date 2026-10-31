@@ -11,6 +11,12 @@ import org.springframework.context.annotation.Bean;
 @AutoConfiguration
 public class CompatibilityLogAutoConfiguration {
 
+    /**
+     * Creates the auto-configuration. Spring Boot does this when it applies it.
+     */
+    public CompatibilityLogAutoConfiguration() {
+    }
+
     @Bean
     CompatibilityLog bootMcpDoctorCompatibilityLog() {
         return new CompatibilityLog();

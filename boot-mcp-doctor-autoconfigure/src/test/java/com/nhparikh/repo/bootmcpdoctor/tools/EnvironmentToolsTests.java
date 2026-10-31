@@ -65,8 +65,8 @@ class EnvironmentToolsTests {
     @Test
     void prefixFindsPropertiesFromAnySource() {
         EnvironmentReport report = tools(List.of(), 50).getEnvironment("path");
-        assertThat(report.properties()).containsExactly(
-                new PropertyValue("path", "/usr/bin", report.properties().get(0).origin()));
+        assertThat(report.properties())
+            .containsExactly(new PropertyValue("path", "/usr/bin", report.properties().get(0).origin()));
         assertThat(report.summary()).isEqualTo("1 properties match prefix 'path'.");
     }
 

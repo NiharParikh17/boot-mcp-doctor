@@ -16,9 +16,8 @@ import org.springframework.context.annotation.Import;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * When a tool fails unexpectedly, here because the application's own {@link SanitizingFunction} throws, the client
- * gets a clear message without the exception's own message, and the application's log gets the call, with the
- * stack trace.
+ * When a tool fails unexpectedly, here because the application's own {@link SanitizingFunction} throws, the client gets
+ * a clear message without the exception's own message, and the application's log gets the call, with the stack trace.
  */
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 @Import(ToolFailureTests.FailingSanitizer.class)

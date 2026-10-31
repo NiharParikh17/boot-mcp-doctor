@@ -75,10 +75,10 @@ Every change needs tests. For a tool, that usually means:
 
 ## Code style
 
-There's no automatic formatter yet, so please match the surrounding code:
+Spotless formats the Java code: 4-space indentation, lines of at most 120 characters, and imports grouped as `java.*`, third-party, `org.springframework.*`, then static imports. `./mvnw verify` fails on code that isn't formatted, so run `./mvnw spotless:apply` before you commit. The settings are in `eclipse-formatter.prefs`. Tool annotations stay as written, between `// @formatter:off` and `// @formatter:on`, since the formatter can't lay out the text blocks in them.
 
-- 4-space indentation and lines of at most 120 characters
-- imports grouped as `java.*`, third-party, `org.springframework.*`, then static imports
+Beyond formatting, please match the surrounding code:
+
 - constructor injection only; records for data; no Lombok
 - Javadoc on public classes, methods and properties; keep internal classes package-private where possible
 - one tool group per class, kept small

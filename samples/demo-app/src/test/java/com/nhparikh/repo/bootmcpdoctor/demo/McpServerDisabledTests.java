@@ -9,8 +9,7 @@ import org.springframework.boot.test.system.CapturedOutput;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * With the MCP server turned off, there is no endpoint at all, and the startup log warns that the tools are not
- * served.
+ * With the MCP server turned off, there is no endpoint at all, and the startup log warns that the tools are not served.
  */
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, properties = "spring.ai.mcp.server.enabled=false")
 class McpServerDisabledTests extends McpAppTest {

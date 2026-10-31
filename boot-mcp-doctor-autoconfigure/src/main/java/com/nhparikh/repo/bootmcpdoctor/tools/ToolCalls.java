@@ -4,10 +4,10 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * Records what happens during the tool call that runs on the current thread, for the line boot-mcp-doctor logs
- * about each call. Each tool runs its work through it, so that an unexpected failure reaches the caller as a clear
- * message instead of the exception's own message, which can contain configuration values. The failure itself, with
- * its stack trace, is logged with the call.
+ * Records what happens during the tool call that runs on the current thread, for the line boot-mcp-doctor logs about
+ * each call. Each tool runs its work through it, so that an unexpected failure reaches the caller as a clear message
+ * instead of the exception's own message, which can contain configuration values. The failure itself, with its stack
+ * trace, is logged with the call.
  * <p>
  * Internal to boot-mcp-doctor: public only so that the auto-configuration can read what the tools recorded, and may
  * change in any release.
@@ -43,13 +43,12 @@ public final class ToolCalls {
      * @return the message
      */
     public static String failureMessage(String tool, Throwable failure) {
-        return tool + " failed with " + failure.getClass().getSimpleName()
-                + ". The application's log has the details.";
+        return tool + " failed with " + failure.getClass().getSimpleName() + ". The application's log has the details.";
     }
 
     /**
-     * Runs a tool's work. An exception, or a class or method missing from the application, is recorded for the log,
-     * and the tool reports it through {@code failed} instead.
+     * Runs a tool's work. An exception, or a class or method missing from the application, is recorded for the log, and
+     * the tool reports it through {@code failed} instead.
      */
     static <T> T run(String tool, Supplier<T> work, Function<String, T> failed) {
         try {

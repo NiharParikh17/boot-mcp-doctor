@@ -1,0 +1,27 @@
+# Weekly pull requests for newer Maven dependencies and plugins, and for newer GitHub Actions, grouped so that each
+# week brings at most a few. Spring Boot and Spring AI only get patch releases here: a new minor or major line is
+# adopted by hand, together with docs/compatibility.md and CompatibilityLog.
+version: 2
+updates:
+  - package-ecosystem: maven
+    directory: /
+    schedule:
+      interval: weekly
+    ignore:
+      - dependency-name: "org.springframework.boot:*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "org.springframework.ai:*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+    groups:
+      spring:
+        patterns: ["org.springframework.boot:*", "org.springframework.ai:*"]
+      build-plugins:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]

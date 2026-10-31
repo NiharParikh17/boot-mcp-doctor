@@ -25,8 +25,8 @@ import org.springframework.core.env.Environment;
 import org.springframework.core.env.PropertySource;
 
 /**
- * MCP tools that describe the application's effective configuration. Values are always masked: by the built-in
- * and configured key patterns, and by any {@link SanitizingFunction} beans the application defines for Actuator.
+ * MCP tools that describe the application's effective configuration. Values are always masked: by the built-in and
+ * configured key patterns, and by any {@link SanitizingFunction} beans the application defines for Actuator.
  */
 public class EnvironmentTools {
 
@@ -40,6 +40,7 @@ public class EnvironmentTools {
     private final ResponseSanitizer sanitizer;
 
     /**
+     * Creates the {@code get_environment} tool.
      * @param environment the application's environment
      * @param sanitizingFunctions extra sanitizing applied to every value, in order
      * @param sanitizer masks and limits the response
@@ -56,6 +57,7 @@ public class EnvironmentTools {
      * @param prefix optional property name prefix
      * @return the matching properties
      */
+    // @formatter:off
     @McpTool(name = "get_environment", title = "Get environment",
             description = """
                     Returns this application's effective configuration properties: the value that actually \
@@ -66,6 +68,7 @@ public class EnvironmentTools {
                     variables. Secret values are always masked as ******.""",
             annotations = @McpAnnotations(title = "Get environment", readOnlyHint = true, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
+    // @formatter:on
     public EnvironmentReport getEnvironment(@McpToolParam(required = false,
             description = "Property name prefix, for example spring.datasource or server") String prefix) {
         return ToolCalls.run("get_environment", () -> {

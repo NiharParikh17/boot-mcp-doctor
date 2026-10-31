@@ -14,8 +14,8 @@ import org.springframework.context.annotation.Bean;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Secrets never leave the application: the built-in key patterns, the ones added with
- * {@code masking.additional-keys}, and passwords inside URIs are masked in configuration and in health details.
+ * Secrets never leave the application: the built-in key patterns, the ones added with {@code masking.additional-keys},
+ * and passwords inside URIs are masked in configuration and in health details.
  */
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT,
         properties = { "boot-mcp-doctor.masking.additional-keys=iban", "demo.payment.api-key=not-a-real-key-123",

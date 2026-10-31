@@ -39,16 +39,17 @@ class CompatibilityLogTests {
 
     @Test
     void supportedVersionsWhileTurnedOff() {
-        assertThat(line(supported(false))).isEqualTo(new Line(false, "boot-mcp-doctor 0.1.2 supports this "
-                + "application, Spring Boot 4.1.2 with Spring AI 2.0.2, but is turned off. Set "
-                + "boot-mcp-doctor.enabled=true to turn it on."));
+        assertThat(line(supported(false))).isEqualTo(new Line(false,
+                "boot-mcp-doctor 0.1.2 supports this "
+                        + "application, Spring Boot 4.1.2 with Spring AI 2.0.2, but is turned off. Set "
+                        + "boot-mcp-doctor.enabled=true to turn it on."));
     }
 
     @Test
     void anyPatchOrSnapshotOfTheSupportedLines() {
         Application snapshots = new Application("4.1.3-SNAPSHOT", "2.0.3-SNAPSHOT", true, true, true, true, true);
-        assertThat(line(snapshots).text()).endsWith("supports this application: Spring Boot 4.1.3-SNAPSHOT with "
-                + "Spring AI 2.0.3-SNAPSHOT.");
+        assertThat(line(snapshots).text())
+            .endsWith("supports this application: Spring Boot 4.1.3-SNAPSHOT with Spring AI 2.0.3-SNAPSHOT.");
         assertThat(line(new Application("4.10.0", "2.0.0", true, true, true, true, true)).warning()).isTrue();
     }
 
@@ -67,17 +68,16 @@ class CompatibilityLogTests {
     @Test
     void newerSpringBootWhileItsToolsAreRegistered() {
         Line line = line(new Application("4.2.0", "2.0.2", true, true, true, true, true));
-        assertThat(line).isEqualTo(new Line(true, "boot-mcp-doctor 0.1.2 does not support this application: "
-                + NEEDS + "Spring Boot 4.2.0 with Spring AI 2.0.2. It started anyway, so some tools may not work."
-                + SEE));
+        assertThat(line).isEqualTo(new Line(true, "boot-mcp-doctor 0.1.2 does not support this application: " + NEEDS
+                + "Spring Boot 4.2.0 with Spring AI 2.0.2. It started anyway, so some tools may not work." + SEE));
     }
 
     // Spring AI 1.1 has its MCP annotations elsewhere, so the version is all that is reported.
     @Test
     void springBoot3WithItsSpringAi() {
         Line line = line(new Application("3.5.16", "1.1.8", true, true, false, true, false));
-        assertThat(line).isEqualTo(new Line(true, "boot-mcp-doctor 0.1.2 does not support this application: "
-                + NEEDS + "Spring Boot 3.5.16 with Spring AI 1.1.8. It registered no tools." + SEE));
+        assertThat(line).isEqualTo(new Line(true, "boot-mcp-doctor 0.1.2 does not support this application: " + NEEDS
+                + "Spring Boot 3.5.16 with Spring AI 1.1.8. It registered no tools." + SEE));
     }
 
     @Test
@@ -104,9 +104,8 @@ class CompatibilityLogTests {
 
     @Test
     void reportsEveryProblem() {
-        assertThat(line(new Application("4.2.0", "2.0.2", false, true, true, true, false)).text())
-            .contains(NEEDS + "Spring Boot 4.2.0 with Spring AI 2.0.2; it needs Spring Boot Actuator on the "
-                    + "classpath.");
+        assertThat(line(new Application("4.2.0", "2.0.2", false, true, true, true, false)).text()).contains(
+                NEEDS + "Spring Boot 4.2.0 with Spring AI 2.0.2; it needs Spring Boot Actuator on the classpath.");
     }
 
     @Test

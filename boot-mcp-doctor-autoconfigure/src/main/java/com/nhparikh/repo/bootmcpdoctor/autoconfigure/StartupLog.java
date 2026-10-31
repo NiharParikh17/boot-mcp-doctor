@@ -17,8 +17,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationListener;
 
 /**
- * Logs, once the application is ready, where boot-mcp-doctor's tools are served, which tools are registered and
- * who may call them.
+ * Logs, once the application is ready, where boot-mcp-doctor's tools are served, which tools are registered and who may
+ * call them.
  */
 final class StartupLog implements ApplicationListener<ApplicationReadyEvent> {
 
@@ -77,11 +77,7 @@ final class StartupLog implements ApplicationListener<ApplicationReadyEvent> {
         }
         else {
             List<String> names = this.tools.stream().map(Tool::name).sorted().toList();
-            List<String> writeNames = this.tools.stream()
-                .filter(ToolGuard::isWrite)
-                .map(Tool::name)
-                .sorted()
-                .toList();
+            List<String> writeNames = this.tools.stream().filter(ToolGuard::isWrite).map(Tool::name).sorted().toList();
             logger.info(running + " with " + names.size() + (writeNames.isEmpty() ? " read-only" : "")
                     + ((names.size() == 1) ? " tool: " : " tools: ") + String.join(", ", names) + ". "
                     + access(writeNames) + ".");
@@ -150,8 +146,8 @@ final class StartupLog implements ApplicationListener<ApplicationReadyEvent> {
         if (writeNames.isEmpty()) {
             return read;
         }
-        return read + "; " + String.join(", ", writeNames) + ((writeNames.size() == 1) ? " needs" : " need")
-                + " the " + this.security.writeAuthority() + " authority";
+        return read + "; " + String.join(", ", writeNames) + ((writeNames.size() == 1) ? " needs" : " need") + " the "
+                + this.security.writeAuthority() + " authority";
     }
 
     private boolean acceptsAnyCaller() {

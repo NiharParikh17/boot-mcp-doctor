@@ -70,8 +70,9 @@ class ToolGuardTests {
         assertThat(result.isError()).isTrue();
         assertThat(text(result))
             .isEqualTo("get_health failed with IllegalStateException. The application's log has the details.");
-        assertThat(output).containsPattern("WARN .*MCP tool call: get_health\\(\\) by ops: failed with "
-                + "IllegalStateException in \\d+ ms")
+        assertThat(output)
+            .containsPattern(
+                    "WARN .*MCP tool call: get_health\\(\\) by ops: failed with IllegalStateException in \\d+ ms")
             .contains("java.lang.IllegalStateException: registry closed")
             .contains("at com.nhparikh.repo.bootmcpdoctor.tools.HealthTools");
     }

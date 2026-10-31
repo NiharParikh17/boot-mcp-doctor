@@ -57,9 +57,9 @@ class ToolSelector {
 
     /**
      * Returns the tool objects that may be registered. Without Spring Security, there are none unless unauthenticated
-     * access is allowed. A group is left out when its Actuator endpoint's access is {@code none}. A write group is
-     * also left out in read-only mode, when the endpoint's access is {@code read-only}, without Spring Security, or
-     * when no write authority is configured.
+     * access is allowed. A group is left out when its Actuator endpoint's access is {@code none}. A write group is also
+     * left out in read-only mode, when the endpoint's access is {@code read-only}, without Spring Security, or when no
+     * write authority is configured.
      * @return the tool objects
      */
     List<Object> toolObjects() {
@@ -67,9 +67,9 @@ class ToolSelector {
     }
 
     /**
-     * Builds the tool specifications to register: converts {@link #toolObjects()} with {@code provider}, then keeps
-     * the ones that {@code boot-mcp-doctor.tools.include} and {@code exclude} allow. Names in those lists that match
-     * no tool that can be registered are logged once.
+     * Builds the tool specifications to register: converts {@link #toolObjects()} with {@code provider}, then keeps the
+     * ones that {@code boot-mcp-doctor.tools.include} and {@code exclude} allow. Names in those lists that match no
+     * tool that can be registered are logged once.
      * @param provider converts tool objects into specifications
      * @param name extracts the tool name from a specification
      * @param <T> the specification type
@@ -136,8 +136,8 @@ class ToolSelector {
     // Mirrors management.endpoint.<id>.access, capped by management.endpoints.access.max-permitted.
     private String access(String endpointId) {
         String defaultAccess = this.environment.getProperty("management.endpoints.access.default", "unrestricted");
-        String access = normalize(this.environment.getProperty("management.endpoint." + endpointId + ".access",
-                defaultAccess));
+        String access = normalize(
+                this.environment.getProperty("management.endpoint." + endpointId + ".access", defaultAccess));
         String maxPermitted = normalize(
                 this.environment.getProperty("management.endpoints.access.max-permitted", "unrestricted"));
         if ("none".equals(maxPermitted) || "none".equals(access)) {

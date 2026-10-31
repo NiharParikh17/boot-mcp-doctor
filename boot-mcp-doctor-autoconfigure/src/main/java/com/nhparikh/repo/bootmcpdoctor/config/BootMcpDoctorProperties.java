@@ -9,8 +9,8 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  * Configuration for boot-mcp-doctor.
  *
  * @param enabled Whether to register the MCP tools. Nothing is registered unless this is true.
- * @param readOnly Whether to register only tools that read state. Tools that change state, such as
- * set_log_level, are not registered at all while this is true.
+ * @param readOnly Whether to register only tools that read state. Tools that change state, such as set_log_level, are
+ * not registered at all while this is true.
  * @param tools Which tools to register.
  * @param security Who may call the tools.
  * @param masking Masking applied to every tool response.
@@ -36,6 +36,7 @@ public record BootMcpDoctorProperties(boolean enabled, @DefaultValue("true") boo
     public record Security(boolean allowUnauthenticated, String readAuthority, String writeAuthority) {
 
         /**
+         * Whether {@code readAuthority} is set, so that read tools need it.
          * @return whether a read authority is configured
          */
         public boolean requiresReadAuthority() {
@@ -43,6 +44,7 @@ public record BootMcpDoctorProperties(boolean enabled, @DefaultValue("true") boo
         }
 
         /**
+         * Whether {@code writeAuthority} is set. Tools that change state are not registered until it is.
          * @return whether a write authority is configured
          */
         public boolean requiresWriteAuthority() {
@@ -55,8 +57,8 @@ public record BootMcpDoctorProperties(boolean enabled, @DefaultValue("true") boo
     }
 
     /**
-     * Tool selection. A tool is registered when it is in {@code include} (or {@code include} is empty) and is
-     * not in {@code exclude}.
+     * Tool selection. A tool is registered when it is in {@code include} (or {@code include} is empty) and is not in
+     * {@code exclude}.
      *
      * @param include Names of the tools to register. Empty means all tools.
      * @param exclude Names of tools never to register, even if they are included.
@@ -64,6 +66,7 @@ public record BootMcpDoctorProperties(boolean enabled, @DefaultValue("true") boo
     public record Tools(@DefaultValue List<String> include, @DefaultValue List<String> exclude) {
 
         /**
+         * Whether a tool passes {@code include} and {@code exclude}.
          * @param name a tool name, such as {@code get_health}
          * @return whether the tool may be registered
          */

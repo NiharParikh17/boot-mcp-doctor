@@ -10,8 +10,8 @@ import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Spring Boot only creates Actuator's health endpoint while health is exposed, but {@code get_health} reads the
- * health contributors directly when it is missing, so hiding health from HTTP callers doesn't affect the tool.
+ * Spring Boot only creates Actuator's health endpoint while health is exposed, but {@code get_health} reads the health
+ * contributors directly when it is missing, so hiding health from HTTP callers doesn't affect the tool.
  */
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT,
         properties = "management.endpoints.web.exposure.exclude=health")

@@ -62,8 +62,8 @@ class SecuredDemoApplicationTests extends McpAppTest {
         assertThat(call(admin, "set_log_level", debug)).contains("\"changed\":true").contains("\"newLevel\":\"DEBUG\"");
         assertThat(call(admin, "get_loggers", Map.of("prefix", "com.nhparikh.repo.bootmcpdoctor.secured")))
             .contains("\"configuredLevel\":\"DEBUG\"");
-        assertThat(call(admin, "set_log_level", Map.of("logger", "com.nhparikh.repo.bootmcpdoctor.secured", "level",
-                "RESET")))
+        assertThat(call(admin, "set_log_level",
+                Map.of("logger", "com.nhparikh.repo.bootmcpdoctor.secured", "level", "RESET")))
             .contains("\"newLevel\":null");
 
         String client = " via " + Pattern.quote(CLIENT) + ": ";

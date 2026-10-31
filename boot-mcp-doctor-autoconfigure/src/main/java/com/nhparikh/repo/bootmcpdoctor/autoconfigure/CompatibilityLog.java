@@ -18,8 +18,8 @@ import org.springframework.util.ClassUtils;
 
 /**
  * Logs, once the application is ready, whether boot-mcp-doctor supports the application's Spring Boot and Spring AI
- * versions, also when boot-mcp-doctor is turned off. It only uses classes that every Spring Boot version has and
- * looks the others up by name, so that it also runs, and says so, on versions that boot-mcp-doctor does not support.
+ * versions, also when boot-mcp-doctor is turned off. It only uses classes that every Spring Boot version has and looks
+ * the others up by name, so that it also runs, and says so, on versions that boot-mcp-doctor does not support.
  */
 final class CompatibilityLog implements ApplicationListener<ApplicationReadyEvent>, Ordered {
 
@@ -47,9 +47,10 @@ final class CompatibilityLog implements ApplicationListener<ApplicationReadyEven
 
     // Where Spring AI's MCP modules record their version, which is the same for all of them. Any one may be missing
     // when the application doesn't use the starter.
-    static final List<String> SPRING_AI_POMS = List.of("spring-ai-mcp", "spring-ai-mcp-annotations",
-            "spring-ai-autoconfigure-mcp-server-common")
-        .stream()
+    private static final List<String> SPRING_AI_MODULES = List.of("spring-ai-mcp", "spring-ai-mcp-annotations",
+            "spring-ai-autoconfigure-mcp-server-common");
+
+    static final List<String> SPRING_AI_POMS = SPRING_AI_MODULES.stream()
         .map((module) -> "META-INF/maven/org.springframework.ai/" + module + "/pom.properties")
         .toList();
 
@@ -112,15 +113,16 @@ final class CompatibilityLog implements ApplicationListener<ApplicationReadyEven
         String found = "Spring Boot " + springBoot + springAi(application);
         List<String> problems = problems(application, found);
         if (problems.isEmpty() && (application.springBoot() == null || application.springAi() == null)) {
-            return new Line(false, name + " could not read this application's "
-                    + ((application.springBoot() == null) ? "Spring Boot" : "Spring AI")
-                    + " version, so it can't tell whether it supports it. It supports " + supported() + ". See "
-                    + CHART + ".");
+            return new Line(false,
+                    name + " could not read this application's "
+                            + ((application.springBoot() == null) ? "Spring Boot" : "Spring AI")
+                            + " version, so it can't tell whether it supports it. It supports " + supported() + ". See "
+                            + CHART + ".");
         }
         if (problems.isEmpty()) {
             return application.enabled() ? new Line(false, name + " supports this application: " + found + ".")
-                    : new Line(false, name + " supports this application, " + found + ", but is turned off. "
-                            + TURN_ON);
+                    : new Line(false,
+                            name + " supports this application, " + found + ", but is turned off. " + TURN_ON);
         }
         StringBuilder text = new StringBuilder(name).append(" does not support this application")
             .append(application.enabled() ? "" : ", and is turned off")
@@ -200,8 +202,8 @@ final class CompatibilityLog implements ApplicationListener<ApplicationReadyEven
      * @param enabled whether {@code boot-mcp-doctor.enabled} is {@code true}
      * @param started whether boot-mcp-doctor's auto-configuration ran
      */
-    record Application(String springBoot, String springAi, boolean actuator, boolean mcpServer,
-            boolean mcpAnnotations, boolean enabled, boolean started) {
+    record Application(String springBoot, String springAi, boolean actuator, boolean mcpServer, boolean mcpAnnotations,
+            boolean enabled, boolean started) {
     }
 
     /**

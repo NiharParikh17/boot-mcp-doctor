@@ -33,8 +33,9 @@ class ConnectionLogFilterTests {
         request.setUserPrincipal(() -> "ops");
         request.setRemoteAddr("10.0.0.7");
         this.filter.doFilter(request, new MockHttpServletResponse(), transport(SESSION, 200));
-        assertThat(output).contains("MCP client connected: Visual Studio Code 1.105.1 (protocol 2025-06-18, "
-                + "session 3f9c2a1e, user ops, from 10.0.0.7)")
+        assertThat(output)
+            .contains("MCP client connected: Visual Studio Code 1.105.1 (protocol 2025-06-18, "
+                    + "session 3f9c2a1e, user ops, from 10.0.0.7)")
             .doesNotContain("7b4d");
     }
 
@@ -57,8 +58,11 @@ class ConnectionLogFilterTests {
     void ignoresOtherMessages(CapturedOutput output) throws Exception {
         this.filter.doFilter(post("{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}"),
                 new MockHttpServletResponse(), transport(null, 202));
-        this.filter.doFilter(post("{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":"
-                + "\"get_health\",\"arguments\":{}}}"), new MockHttpServletResponse(), transport(null, 200));
+        this.filter
+            .doFilter(
+                    post("{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":"
+                            + "\"get_health\",\"arguments\":{}}}"),
+                    new MockHttpServletResponse(), transport(null, 200));
         assertThat(output).doesNotContain("MCP client connected");
     }
 
@@ -100,7 +104,7 @@ class ConnectionLogFilterTests {
     @Test
     void keepsClientValuesOnOneLine(CapturedOutput output) throws Exception {
         MockHttpServletRequest request = post(initialize("evil\\n2026-10-23 INFO forged\\u202e"));
-        request.setParameter("sessionId", "ab\r\ncd e-rest");
+        request.setParameter("sessionId", "ab\r\ncd\u2028e-rest");
         this.filter.doFilter(request, new MockHttpServletResponse(), transport(null, 200));
         assertThat(output).contains("MCP client connected: evil?2026-10-23 INFO forged? 1.105.1 (protocol 2025-06-18, "
                 + "session ab??cd?e,");

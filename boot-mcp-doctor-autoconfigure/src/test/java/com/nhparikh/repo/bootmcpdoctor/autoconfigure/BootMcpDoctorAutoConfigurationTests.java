@@ -40,8 +40,8 @@ class BootMcpDoctorAutoConfigurationTests {
 
     private static final String WRITE_AUTHORITY = "boot-mcp-doctor.security.write-authority=ROLE_OPS_ADMIN";
 
-    private static final List<String> READ_TOOLS = List.of("get_environment", "get_health", "get_loggers",
-            "get_metric", "get_slow_endpoints", "list_metrics");
+    private static final List<String> READ_TOOLS = List.of("get_environment", "get_health", "get_loggers", "get_metric",
+            "get_slow_endpoints", "list_metrics");
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
         .withConfiguration(AutoConfigurations.of(BootMcpDoctorAutoConfiguration.class));
@@ -197,8 +197,8 @@ class BootMcpDoctorAutoConfigurationTests {
     @Test
     void skipsMetricsToolsWithoutMetricsModule() {
         this.enabled.withClassLoader(new FilteredClassLoader(MetricsEndpoint.class))
-            .run((context) -> assertThat(toolNames(context)).doesNotContain("get_metric", "list_metrics",
-                    "get_slow_endpoints")
+            .run((context) -> assertThat(toolNames(context))
+                .doesNotContain("get_metric", "list_metrics", "get_slow_endpoints")
                 .contains("get_health"));
     }
 
@@ -228,8 +228,8 @@ class BootMcpDoctorAutoConfigurationTests {
 
     @Test
     void noConnectionLogFilterOutsideServletApplications() {
-        this.enabled.run((context) -> assertThat(context).hasNotFailed()
-            .doesNotHaveBean("bootMcpDoctorConnectionLogFilter"));
+        this.enabled
+            .run((context) -> assertThat(context).hasNotFailed().doesNotHaveBean("bootMcpDoctorConnectionLogFilter"));
     }
 
     @Test

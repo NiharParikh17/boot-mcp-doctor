@@ -9,8 +9,7 @@ import org.springframework.boot.test.system.CapturedOutput;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Actuator's access settings apply to the tools too: {@code access=none} on an endpoint removes the tools that read
- * it.
+ * Actuator's access settings apply to the tools too: {@code access=none} on an endpoint removes the tools that read it.
  */
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT,
         properties = { "management.endpoint.env.access=none", "management.endpoint.metrics.access=none" })

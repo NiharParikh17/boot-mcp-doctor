@@ -24,6 +24,10 @@ public class LogLevelTools {
 
     static final String RESET = "RESET";
 
+    private static final String LOGGER = "Logger or logger group name, for example com.example.orders or ROOT";
+
+    private static final String LEVEL = "TRACE, DEBUG, INFO, WARN, ERROR, FATAL, OFF, or RESET to clear the level";
+
     private static final String VALID_LEVELS = Arrays.stream(LogLevel.values())
         .map(LogLevel::name)
         .collect(Collectors.joining(", ")) + " or " + RESET;
@@ -33,6 +37,7 @@ public class LogLevelTools {
     private final ObjectProvider<LoggerGroups> loggerGroups;
 
     /**
+     * Creates the {@code set_log_level} tool.
      * @param loggingSystem the application's logging system
      * @param loggerGroups the application's logger groups, which may be absent
      */
@@ -47,6 +52,7 @@ public class LogLevelTools {
      * @param level the new level, or {@code RESET}
      * @return the old and new levels
      */
+    // @formatter:off
     @McpTool(name = "set_log_level", title = "Set log level",
             description = """
                     Changes the log level of a logger or logger group in this running application, for example to \
@@ -55,11 +61,9 @@ public class LogLevelTools {
                     Returns the previous and new levels.""",
             annotations = @McpAnnotations(title = "Set log level", readOnlyHint = false, destructiveHint = false,
                     idempotentHint = true, openWorldHint = false))
-    public LogLevelChange setLogLevel(
-            @McpToolParam(description = "Logger or logger group name, for example com.example.orders or ROOT")
-            String logger,
-            @McpToolParam(description = "TRACE, DEBUG, INFO, WARN, ERROR, FATAL, OFF, or RESET to clear the level")
-            String level) {
+    // @formatter:on
+    public LogLevelChange setLogLevel(@McpToolParam(description = LOGGER) String logger,
+            @McpToolParam(description = LEVEL) String level) {
         return ToolCalls.run("set_log_level", () -> {
             LoggersEndpoint endpoint = LoggerTools.endpoint(this.loggingSystem, this.loggerGroups);
             if (endpoint == null) {

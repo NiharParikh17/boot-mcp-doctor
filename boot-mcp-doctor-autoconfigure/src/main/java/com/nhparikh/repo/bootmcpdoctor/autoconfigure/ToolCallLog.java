@@ -9,10 +9,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Logs one line for every tool call: the tool and its arguments, who called it and from which client, and how it
- * went. Calls that succeed are logged at INFO, and calls that are refused or fail at WARN, failures with their
- * stack trace. Argument values are masked like tool responses, and kept on one line and short, since clients send
- * them.
+ * Logs one line for every tool call: the tool and its arguments, who called it and from which client, and how it went.
+ * Calls that succeed are logged at INFO, and calls that are refused or fail at WARN, failures with their stack trace.
+ * Argument values are masked like tool responses, and kept on one line and short, since clients send them.
  */
 final class ToolCallLog {
 
